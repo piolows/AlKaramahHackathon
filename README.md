@@ -115,7 +115,7 @@ The **AET Teacher Portal** is a comprehensive web application that:
 ## 📁 Project Structure
 
 ```
-aet-teacher-portal/
+AlKaramahHackathon/
 ├── src/
 │   ├── app/                          # Next.js App Router
 │   │   ├── page.tsx                  # Landing page
@@ -142,6 +142,7 @@ aet-teacher-portal/
 │   └── schema/
 │       └── schema.prisma             # Database schema
 │
+├── aet-files/                        # AET Framework reference documents
 ├── prisma.config.ts                  # Prisma configuration
 ├── .env.local                        # Environment variables (API keys)
 ├── package.json
@@ -164,7 +165,7 @@ aet-teacher-portal/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd aet-teacher-portal
+   cd AlKaramahHackathon
    ```
 
 2. **Install dependencies**
