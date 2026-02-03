@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Class {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  gradeLevel  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  students    Student[]
+}
+
+model Student {
+  id                String       @id @default(cuid())
+  firstName         String
+  lastName          String
+  dateOfBirth       DateTime?
+  profileImage      String?
+  diagnoses         String       // JSON string of diagnoses
+  behaviors         String?      // JSON string of behaviors
+  strengths         String?      // JSON string of strengths
+  challenges        String?      // JSON string of challenges
+  communicationStyle String?
+  sensoryNeeds      String?      // JSON string of sensory needs
+  notes             String?
+  classId           String
+  class             Class        @relation(fields: [classId], references: [id])
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  aetGoals          AETGoal[]
+  comments          Comment[]
+}
+
+model AETGoal {
+  id              String    @id @default(cuid())
+  category        String    // e.g., "Social Communication", "Social Interaction", etc.
+  subcategory     String?   // e.g., "Requesting", "Joint Attention", etc.
+  goalTitle       String    // e.g., "Make a request for an item"
+  goalDescription String?
+  currentLevel    Int       @default(1) // 1-4 based on AET levels
+  targetLevel     Int       @default(2)
+  generatedPlan   String?   // AI-generated plan
+  customPlan      String?   // Teacher's custom plan
+  resources       String?   // JSON string of resources
+  status          String    @default("not_started") // not_started, in_progress, achieved
+  studentId       String
+  student         Student   @relation(fields: [studentId], references: [id])
+  comments        Comment[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  content     String
+  authorName  String
+  authorRole  String?   // e.g., "Teacher", "SENCO", "Teaching Assistant"
+  studentId   String?
+  student     Student?  @relation(fields: [studentId], references: [id])
+  aetGoalId   String?
+  aetGoal     AETGoal?  @relation(fields: [aetGoalId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
