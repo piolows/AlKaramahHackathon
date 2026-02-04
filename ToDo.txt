@@ -9,13 +9,13 @@
 - Consultation page for teachers (Instead of edit diagnoses)
 	- Maybe dummy auth
 - Host
-- Editing DB of students and classrooms
+- Editing DB of students and classrooms (done maybe)
 - Print stuff
-- Remove generate all plans
+- Remove generate all plans (done and added to classes)
 - Phone view
-- Connect and actually use DB (SQLite)
+- Connect and actually use DB (SQLite) (done maybe)
 	- Store classes, students, and all student plans/progress
-- In class view: quick look at current AET goal and generated output or generate button
+- In class view: quick look at current AET goal and generated output or generate button (done)
 - Further test prompting
 
 

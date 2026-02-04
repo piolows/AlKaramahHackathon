@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { 
   GraduationCap, 
   ChevronRight,
@@ -17,9 +17,27 @@ import {
   X,
   Target,
   Plus,
-  Trash2
+  Trash2,
+  Settings
 } from 'lucide-react';
-import { sampleStudents, sampleClasses, sampleAETGoals } from '@/lib/sample-data';
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  classId: string;
+  className: string;
+  diagnoses: string[];
+  strengths: string[];
+  challenges: string[];
+  interests: string[];
+  sensoryNeeds: string[];
+  communicationStyle: string;
+  supportStrategies: string[];
+  triggers: string[];
+  calmingStrategies: string[];
+}
 
 // Editable List Component
 function EditableList({ 
@@ -391,20 +409,89 @@ function EditableText({
 
 export default function StudentProfilePage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
-  const student = sampleStudents.find(s => s.id === studentId);
-  const classData = student ? sampleClasses.find(c => c.id === student.classId) : null;
-  const goals = sampleAETGoals.filter(g => g.studentId === studentId);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
   // State for all editable fields
-  const [diagnoses, setDiagnoses] = useState(student?.diagnoses || []);
-  const [strengths, setStrengths] = useState(student?.strengths || []);
-  const [challenges, setChallenges] = useState(student?.challenges || []);
-  const [behaviors, setBehaviors] = useState(student?.behaviors || []);
-  const [sensoryNeeds, setSensoryNeeds] = useState(student?.sensoryNeeds || []);
-  const [communicationStyle, setCommunicationStyle] = useState(student?.communicationStyle || '');
-  const [notes, setNotes] = useState(student?.notes || '');
+  const [diagnoses, setDiagnoses] = useState<string[]>([]);
+  const [strengths, setStrengths] = useState<string[]>([]);
+  const [challenges, setChallenges] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [sensoryNeeds, setSensoryNeeds] = useState<string[]>([]);
+  const [communicationStyle, setCommunicationStyle] = useState('');
+  const [supportStrategies, setSupportStrategies] = useState<string[]>([]);
+  const [triggers, setTriggers] = useState<string[]>([]);
+  const [calmingStrategies, setCalmingStrategies] = useState<string[]>([]);
 
-  if (!student || !classData) {
+  useEffect(() => {
+    async function fetchStudent() {
+      try {
+        const res = await fetch(`/api/students/${studentId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStudent(data);
+          setDiagnoses(data.diagnoses || []);
+          setStrengths(data.strengths || []);
+          setChallenges(data.challenges || []);
+          setInterests(data.interests || []);
+          setSensoryNeeds(data.sensoryNeeds || []);
+          setCommunicationStyle(data.communicationStyle || '');
+          setSupportStrategies(data.supportStrategies || []);
+          setTriggers(data.triggers || []);
+          setCalmingStrategies(data.calmingStrategies || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch student:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStudent();
+  }, [studentId]);
+
+  // Save changes to database
+  async function saveChanges() {
+    if (!student) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: student.firstName,
+          lastName: student.lastName,
+          dateOfBirth: student.dateOfBirth,
+          classId: student.classId,
+          diagnoses,
+          strengths,
+          challenges,
+          interests,
+          sensoryNeeds,
+          communicationStyle,
+          supportStrategies,
+          triggers,
+          calmingStrategies
+        })
+      });
+      if (!res.ok) throw new Error('Failed to save');
+    } catch (error) {
+      console.error('Failed to save:', error);
+      alert('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!student) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -436,6 +523,13 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               >
                 Classes
               </Link>
+              <Link 
+                href="/admin" 
+                className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                <Settings className="h-4 w-4" />
+                Admin
+              </Link>
             </div>
           </div>
         </div>
@@ -449,18 +543,18 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
           <ChevronRight className="h-4 w-4" />
           <Link href="/classes" className="hover:text-indigo-600">Classes</Link>
           <ChevronRight className="h-4 w-4" />
-          <Link href={`/classes/${classData.id}`} className="hover:text-indigo-600">{classData.name}</Link>
+          <Link href={`/classes/${student.classId}`} className="hover:text-indigo-600">{student.className}</Link>
           <ChevronRight className="h-4 w-4" />
           <span className="text-gray-900">{student.firstName} {student.lastName}</span>
         </div>
 
         {/* Back Button */}
         <Link 
-          href={`/classes/${classData.id}`}
+          href={`/classes/${student.classId}`}
           className="inline-flex items-center text-gray-600 hover:text-indigo-600 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to {classData.name}
+          Back to {student.className}
         </Link>
 
         {/* Student Header Card */}
@@ -474,7 +568,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
                 <h1 className="text-3xl font-bold text-gray-900">
                   {student.firstName} {student.lastName}
                 </h1>
-                <p className="text-gray-600 mt-1">{classData.name}</p>
+                <p className="text-gray-600 mt-1">{student.className}</p>
                 <p className="text-sm text-gray-500 mt-1">
                   Born: {new Date(student.dateOfBirth).toLocaleDateString('en-GB', { 
                     day: 'numeric', 
@@ -501,7 +595,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             {/* Diagnoses */}
             <EditableTags
               items={diagnoses}
-              onUpdate={setDiagnoses}
+              onUpdate={(items) => { setDiagnoses(items); setTimeout(saveChanges, 100); }}
               icon={Brain}
               iconColor="text-purple-600"
               tagBg="bg-purple-50"
@@ -513,7 +607,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             {/* Strengths */}
             <EditableList
               items={strengths}
-              onUpdate={setStrengths}
+              onUpdate={(items) => { setStrengths(items); setTimeout(saveChanges, 100); }}
               icon={Sparkles}
               iconColor="text-amber-500"
               bulletColor="bg-amber-400"
@@ -524,7 +618,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             {/* Challenges */}
             <EditableList
               items={challenges}
-              onUpdate={setChallenges}
+              onUpdate={(items) => { setChallenges(items); setTimeout(saveChanges, 100); }}
               icon={AlertCircle}
               iconColor="text-red-500"
               bulletColor="bg-red-400"
@@ -532,26 +626,37 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               placeholder="Add a challenge..."
             />
 
-            {/* Behaviors */}
+            {/* Interests */}
             <EditableList
-              items={behaviors}
-              onUpdate={setBehaviors}
+              items={interests}
+              onUpdate={(items) => { setInterests(items); setTimeout(saveChanges, 100); }}
               icon={Heart}
               iconColor="text-pink-500"
               bulletColor="bg-pink-400"
-              title="Behavioral Observations"
-              placeholder="Add a behavioral observation..."
+              title="Interests"
+              placeholder="Add an interest..."
             />
 
-            {/* Notes Section */}
-            <EditableText
-              value={notes}
-              onUpdate={setNotes}
-              icon={Pencil}
-              iconColor="text-gray-500"
-              title="Teacher Notes"
-              placeholder="Add notes about this student..."
-              multiline={true}
+            {/* Triggers */}
+            <EditableList
+              items={triggers}
+              onUpdate={(items) => { setTriggers(items); setTimeout(saveChanges, 100); }}
+              icon={AlertCircle}
+              iconColor="text-orange-500"
+              bulletColor="bg-orange-400"
+              title="Triggers"
+              placeholder="Add a trigger..."
+            />
+
+            {/* Calming Strategies */}
+            <EditableList
+              items={calmingStrategies}
+              onUpdate={(items) => { setCalmingStrategies(items); setTimeout(saveChanges, 100); }}
+              icon={Heart}
+              iconColor="text-teal-500"
+              bulletColor="bg-teal-400"
+              title="Calming Strategies"
+              placeholder="Add a calming strategy..."
             />
           </div>
 
@@ -560,7 +665,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             {/* Communication Style */}
             <EditableText
               value={communicationStyle}
-              onUpdate={setCommunicationStyle}
+              onUpdate={(value) => { setCommunicationStyle(value); setTimeout(saveChanges, 100); }}
               icon={MessageSquare}
               iconColor="text-blue-500"
               title="Communication Style"
@@ -571,7 +676,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             {/* Sensory Needs */}
             <EditableList
               items={sensoryNeeds}
-              onUpdate={setSensoryNeeds}
+              onUpdate={(items) => { setSensoryNeeds(items); setTimeout(saveChanges, 100); }}
               icon={Eye}
               iconColor="text-green-500"
               bulletColor="bg-green-400"
@@ -579,38 +684,40 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               placeholder="Add a sensory need..."
             />
 
-            {/* Quick Stats */}
+            {/* Support Strategies */}
+            <EditableList
+              items={supportStrategies}
+              onUpdate={(items) => { setSupportStrategies(items); setTimeout(saveChanges, 100); }}
+              icon={Target}
+              iconColor="text-indigo-500"
+              bulletColor="bg-indigo-400"
+              title="Support Strategies"
+              placeholder="Add a support strategy..."
+            />
+
+            {/* AET Link Card */}
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
               <h2 className="text-lg font-semibold mb-4">AET Progress</h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-indigo-100">Active Goals</span>
-                    <span className="font-medium">{goals.filter(g => g.status === 'in_progress').length}</span>
-                  </div>
-                  <div className="h-2 bg-white/20 rounded-full">
-                    <div 
-                      className="h-2 bg-white rounded-full" 
-                      style={{ width: `${(goals.filter(g => g.status === 'in_progress').length / Math.max(goals.length, 1)) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-indigo-100">Total Goals</span>
-                    <span className="font-medium">{goals.length}</span>
-                  </div>
-                </div>
-                <Link
-                  href={`/students/${student.id}/aet`}
-                  className="block w-full mt-4 text-center py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
-                >
-                  View Full Progress →
-                </Link>
-              </div>
+              <p className="text-indigo-100 text-sm mb-4">
+                Track this student's progress across all AET framework areas with AI-generated personalized teaching plans.
+              </p>
+              <Link
+                href={`/students/${student.id}/aet`}
+                className="block w-full text-center py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+              >
+                View Full Progress →
+              </Link>
             </div>
           </div>
         </div>
+
+        {/* Saving Indicator */}
+        {saving && (
+          <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+            Saving...
+          </div>
+        )}
       </div>
     </div>
   );

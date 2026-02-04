@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { 
   GraduationCap, 
   ChevronRight,
@@ -19,10 +19,29 @@ import {
   MessageCircle,
   AlertCircle,
   Loader2,
-  Trash2
+  Trash2,
+  Settings,
+  Target
 } from 'lucide-react';
-import { sampleStudents, sampleClasses } from '@/lib/sample-data';
-import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
+import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area, findSubcategoryById } from '@/lib/aet-framework';
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  classId: string;
+  className: string;
+  diagnoses: string[];
+  strengths: string[];
+  challenges: string[];
+  interests: string[];
+  sensoryNeeds: string[];
+  communicationStyle: string;
+  supportStrategies: string[];
+  triggers: string[];
+  calmingStrategies: string[];
+}
 
 // Progress data structure for subcategories
 interface SubcategoryProgress {
@@ -31,100 +50,96 @@ interface SubcategoryProgress {
   plan: string | null;
 }
 
-// Sample progress data
-const getInitialProgress = (studentId: string): Record<string, SubcategoryProgress> => {
-  const progress: Record<string, SubcategoryProgress> = {};
-  
-  // Sample progress for different students
-  if (studentId === 'student-1') { // Oliver
-    progress['ci-2-1'] = { level: 2, completed: false, plan: `**Personalized Plan for Oliver - Making requests for items**
-
-Based on Oliver's profile as a strong visual learner who uses PECS and has an interest in trains:
-
-**Week 1-2: Foundation**
-- Create train-themed PECS cards for commonly desired items
-- Practice during preferred activities (train play time)
-- Use visual schedule showing "I want" sequence
-
-**Week 3-4: Expansion**
-- Introduce requesting during snack time
-- Add new PECS symbols gradually
-- Pair PECS exchange with verbal model "train" or "more"
-
-**Resources:** Train-themed PECS cards, Visual "I want" board, Timer
-
-**Success Indicators:** Independently exchanges PECS card, attempts verbal approximation 50% of time` };
-    progress['ci-4-3'] = { level: 2, completed: false, plan: null };
-    progress['ir-2-1'] = { level: 1, completed: false, plan: null };
-    progress['sp-4-1'] = { level: 2, completed: false, plan: null };
-  } else if (studentId === 'student-2') { // Emma
-    progress['su-2-4'] = { level: 2, completed: false, plan: `**Personalized Plan for Emma - Engaging in play with peers**
-
-Based on Emma's need for movement, creative strengths, and response to praise:
-
-**Week 1-2: Introduction**
-- Use art activities for parallel play (painting together)
-- Include movement between activities
-- Heavy praise and stickers for positive interactions
-
-**Week 3-4: Building Skills**
-- Simple cooperative games with clear rules
-- "My turn/Your turn" cards with Emma's artwork
-- Short play sessions, gradually extended
-
-**Accommodations:** Movement breaks, fidget toy while waiting, visual timer
-
-**Success Indicators:** Engages in parallel play for 5+ minutes, shows awareness of peer` };
-    progress['le-2-8'] = { level: 1, completed: false, plan: null };
-    progress['su-5-2'] = { level: 2, completed: false, plan: null };
-  } else if (studentId === 'student-5') { // Liam
-    progress['eu-2-2'] = { level: 2, completed: false, plan: `**Personalized Plan for Liam - Using strategies to manage stress**
-
-Based on Liam's logical thinking, interest in coding, and anxiety triggers:
-
-**Week 1-2: Strategy Introduction**
-- Create "debugging my feelings" visual (coding theme)
-- Introduce 3 calming strategies as "code commands"
-- Practice in calm moments first
-
-**Week 3-4: Recognition & Application**
-- "Error detection" - recognizing anxiety signs
-- Practice choosing appropriate strategy
-- Use logic-based approach: If anxious, then [strategy]
-
-**Strategies (as "Commands"):**
-1. BREATHE: 5 deep breaths
-2. COUNTDOWN: Count backwards from 10
-3. HEADPHONES.ON: Use noise-canceling headphones
-
-**Success Indicators:** Identifies anxiety before escalation, uses strategy independently 70% of time` };
-    progress['eu-2-1'] = { level: 2, completed: false, plan: null };
-    progress['ir-1-2'] = { level: 2, completed: false, plan: null };
-    progress['ci-3-1'] = { level: 3, completed: true, plan: null };
-  }
-  
-  return progress;
-};
-
 export default function StudentAETPage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
-  const student = sampleStudents.find(s => s.id === studentId);
-  const classData = student ? sampleClasses.find(c => c.id === student.classId) : null;
+  const [student, setStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
   
   const [expandedAreas, setExpandedAreas] = useState<string[]>([AET_FRAMEWORK.areas[0].id]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [expandedSubcategories, setExpandedSubcategories] = useState<string[]>([]);
-  const [progress, setProgress] = useState(() => getInitialProgress(studentId));
+  const [progress, setProgress] = useState<Record<string, SubcategoryProgress>>({});
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
   const [editedPlan, setEditedPlan] = useState('');
   const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState<Record<string, string>>({});
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
 
-  if (!student || !classData) {
+  // Fetch student and progress data
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [studentRes, progressRes] = await Promise.all([
+          fetch(`/api/students/${studentId}`),
+          fetch(`/api/students/${studentId}/progress`)
+        ]);
+        
+        if (studentRes.ok) {
+          setStudent(await studentRes.json());
+        }
+        
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          // Transform to expected format
+          const transformedProgress: Record<string, SubcategoryProgress> = {};
+          Object.entries(progressData).forEach(([subcategoryId, data]) => {
+            const d = data as { level: number; completed: boolean; plan: string | null };
+            transformedProgress[subcategoryId] = {
+              level: d.level,
+              completed: d.completed,
+              plan: d.plan
+            };
+          });
+          setProgress(transformedProgress);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [studentId]);
+
+  // Save progress to database
+  async function saveProgress(subcategoryId: string, data: SubcategoryProgress) {
+    try {
+      await fetch(`/api/students/${studentId}/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subcategoryId,
+          level: data.level,
+          completed: data.completed,
+          plan: data.plan
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  }
+
+  // Delete plan from database
+  async function deletePlanFromDb(subcategoryId: string) {
+    try {
+      await fetch(`/api/students/${studentId}/progress?subcategoryId=${subcategoryId}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Failed to delete plan:', error);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!student) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -162,27 +177,29 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   };
 
   const updateLevel = (subcategoryId: string, level: number) => {
+    const newProgress = {
+      level,
+      completed: level === 4 ? progress[subcategoryId]?.completed || false : false,
+      plan: progress[subcategoryId]?.plan || null
+    };
     setProgress(prev => ({
       ...prev,
-      [subcategoryId]: {
-        ...prev[subcategoryId],
-        level,
-        completed: level === 4 ? prev[subcategoryId]?.completed || false : false,
-        plan: prev[subcategoryId]?.plan || null
-      }
+      [subcategoryId]: newProgress
     }));
+    saveProgress(subcategoryId, newProgress);
   };
 
   const toggleCompleted = (subcategoryId: string) => {
+    const newProgress = {
+      level: progress[subcategoryId]?.level || 1,
+      completed: !progress[subcategoryId]?.completed,
+      plan: progress[subcategoryId]?.plan || null
+    };
     setProgress(prev => ({
       ...prev,
-      [subcategoryId]: {
-        ...prev[subcategoryId],
-        level: prev[subcategoryId]?.level || 1,
-        completed: !prev[subcategoryId]?.completed,
-        plan: prev[subcategoryId]?.plan || null
-      }
+      [subcategoryId]: newProgress
     }));
+    saveProgress(subcategoryId, newProgress);
   };
 
   const generatePlan = async (
@@ -237,15 +254,16 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         throw new Error(data.error || 'Failed to generate plan');
       }
 
+      const newProgress = {
+        level: progress[subcategoryId]?.level || 1,
+        completed: progress[subcategoryId]?.completed || false,
+        plan: data.plan
+      };
       setProgress(prev => ({
         ...prev,
-        [subcategoryId]: {
-          ...prev[subcategoryId],
-          level: prev[subcategoryId]?.level || 1,
-          completed: prev[subcategoryId]?.completed || false,
-          plan: data.plan
-        }
+        [subcategoryId]: newProgress
       }));
+      saveProgress(subcategoryId, newProgress);
       setShowInstructions(null);
     } catch (error) {
       console.error('Error generating plan:', error);
@@ -256,112 +274,17 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   };
 
   const savePlan = (subcategoryId: string) => {
+    const newProgress = {
+      level: progress[subcategoryId]?.level || 1,
+      completed: progress[subcategoryId]?.completed || false,
+      plan: editedPlan
+    };
     setProgress(prev => ({
       ...prev,
-      [subcategoryId]: {
-        ...prev[subcategoryId],
-        level: prev[subcategoryId]?.level || 1,
-        completed: prev[subcategoryId]?.completed || false,
-        plan: editedPlan
-      }
+      [subcategoryId]: newProgress
     }));
+    saveProgress(subcategoryId, newProgress);
     setEditingPlan(null);
-  };
-
-  // Generate all plans for subcategories that have a level set but no plan yet
-  const generateAllPlans = async () => {
-    setIsGeneratingAll(true);
-    setGenerationError(null);
-    
-    // Collect all subcategories that need plans (have level set but no plan)
-    const subcategoriesToGenerate: { subcategoryId: string; areaName: string; categoryName: string; subcategory: Subcategory }[] = [];
-    
-    AET_FRAMEWORK.areas.forEach(area => {
-      area.categories.forEach(category => {
-        category.subcategories.forEach(subcategory => {
-          const subProgress = progress[subcategory.id];
-          // Generate for those with a level set OR those without any progress (will default to level 1)
-          if (!subProgress?.plan) {
-            subcategoriesToGenerate.push({
-              subcategoryId: subcategory.id,
-              areaName: area.name,
-              categoryName: category.name,
-              subcategory
-            });
-          }
-        });
-      });
-    });
-
-    setGenerationProgress({ current: 0, total: subcategoriesToGenerate.length });
-
-    // Generate plans sequentially to avoid rate limits
-    for (let i = 0; i < subcategoriesToGenerate.length; i++) {
-      const { subcategoryId, areaName, categoryName, subcategory } = subcategoriesToGenerate[i];
-      setGenerationProgress({ current: i + 1, total: subcategoriesToGenerate.length });
-      setGeneratingPlan(subcategoryId);
-      
-      const currentLevel = progress[subcategoryId]?.level || 1;
-      const levelInfo = PROGRESSION_LEVELS[currentLevel - 1];
-      const nextLevelInfo = currentLevel < 4 ? PROGRESSION_LEVELS[currentLevel] : null;
-      
-      try {
-        const response = await fetch('/api/generate-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            student: {
-              firstName: student.firstName,
-              lastName: student.lastName,
-              dateOfBirth: student.dateOfBirth,
-              diagnoses: student.diagnoses,
-              strengths: student.strengths,
-              challenges: student.challenges,
-              interests: student.interests,
-              sensoryNeeds: student.sensoryNeeds,
-              communicationStyle: student.communicationStyle,
-              supportStrategies: student.supportStrategies,
-              triggers: student.triggers,
-              calmingStrategies: student.calmingStrategies,
-            },
-            component: {
-              name: subcategory.name,
-              description: `${categoryName} - ${subcategory.code}: ${subcategory.name}`,
-              currentLevel: currentLevel,
-              currentLevelDescription: levelInfo.description,
-              nextLevelDescription: nextLevelInfo?.description || null,
-              areaName: areaName,
-            },
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.plan) {
-          setProgress(prev => ({
-            ...prev,
-            [subcategoryId]: {
-              ...prev[subcategoryId],
-              level: prev[subcategoryId]?.level || 1,
-              completed: prev[subcategoryId]?.completed || false,
-              plan: data.plan
-            }
-          }));
-        }
-        
-        // Small delay between requests to avoid rate limits
-        if (i < subcategoriesToGenerate.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (error) {
-        console.error(`Error generating plan for ${subcategory.name}:`, error);
-        // Continue with next one even if this fails
-      }
-    }
-
-    setGeneratingPlan(null);
-    setIsGeneratingAll(false);
-    setGenerationProgress({ current: 0, total: 0 });
   };
 
   // Calculate overall progress
@@ -393,6 +316,24 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     return { completed, total: category.subcategories.length };
   };
 
+  // Find the current goal (last unfinished subcategory - first one that isn't completed)
+  const getCurrentGoal = (): { subcategoryId: string; area: Area; category: Category; subcategory: Subcategory } | null => {
+    for (const area of AET_FRAMEWORK.areas) {
+      for (const category of area.categories) {
+        for (const subcategory of category.subcategories) {
+          const subProgress = progress[subcategory.id];
+          // If not completed, this is the current goal
+          if (!subProgress?.completed) {
+            return { subcategoryId: subcategory.id, area, category, subcategory };
+          }
+        }
+      }
+    }
+    return null; // All goals completed!
+  };
+
+  const currentGoal = getCurrentGoal();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
@@ -412,6 +353,12 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
               >
                 Classes
               </Link>
+              <Link 
+                href="/admin" 
+                className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Admin
+              </Link>
             </div>
           </div>
         </div>
@@ -425,7 +372,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           <ChevronRight className="h-4 w-4" />
           <Link href="/classes" className="hover:text-indigo-600">Classes</Link>
           <ChevronRight className="h-4 w-4" />
-          <Link href={`/classes/${classData.id}`} className="hover:text-indigo-600">{classData.name}</Link>
+          <Link href={`/classes/${student.classId}`} className="hover:text-indigo-600">{student.className}</Link>
           <ChevronRight className="h-4 w-4" />
           <Link href={`/students/${student.id}`} className="hover:text-indigo-600">{student.firstName}</Link>
           <ChevronRight className="h-4 w-4" />
@@ -441,67 +388,298 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           Back to Profile
         </Link>
 
-        {/* Page Header */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xl font-semibold">
-                {student.firstName[0]}{student.lastName[0]}
+        {/* Page Header with Current Goal */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-center">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xl font-semibold">
+                  {student.firstName[0]}{student.lastName[0]}
+                </div>
+                <div className="ml-4">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {student.firstName}&apos;s AET Progression
+                  </h1>
+                  <p className="text-gray-600">
+                    Track progress across all AET Framework areas
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {student.firstName}&apos;s AET Progression
-                </h1>
-                <p className="text-gray-600">
-                  Track progress across all AET Framework areas
-                </p>
-              </div>
-            </div>
-            
-            {/* Progress Summary */}
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{completedSubcategories}</div>
-                <div className="text-xs text-gray-500">Completed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-600">{inProgressSubcategories}</div>
-                <div className="text-xs text-gray-500">In Progress</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-400">{totalSubcategories - completedSubcategories - inProgressSubcategories}</div>
-                <div className="text-xs text-gray-500">Not Started</div>
+              
+              {/* Progress Summary */}
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{completedSubcategories}</div>
+                  <div className="text-xs text-gray-500">Completed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-amber-600">{inProgressSubcategories}</div>
+                  <div className="text-xs text-gray-500">In Progress</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-400">{totalSubcategories - completedSubcategories - inProgressSubcategories}</div>
+                  <div className="text-xs text-gray-500">Not Started</div>
+                </div>
               </div>
             </div>
           </div>
-          
-          {/* Generate All Plans Button */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={generateAllPlans}
-              disabled={isGeneratingAll}
-              className={`w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
-                isGeneratingAll
-                  ? 'bg-indigo-100 text-indigo-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
-              }`}
-            >
-              {isGeneratingAll ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating... ({generationProgress.current}/{generationProgress.total})
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-5 w-5 mr-2" />
-                  Generate All Plans with AI
-                </>
-              )}
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              Generates personalized plans for all subcategories. May take a few minutes.
-            </p>
-          </div>
+
+          {/* Current Goal Section - Integrated into header card */}
+          {currentGoal ? (
+            (() => {
+              const { subcategoryId, area, category, subcategory } = currentGoal;
+              const colors = COLOR_CLASSES[area.color];
+              const subProgress = progress[subcategoryId];
+              const currentLevel = subProgress?.level || 0;
+              const isCompleted = subProgress?.completed || false;
+              const hasPlan = subProgress?.plan;
+
+              return (
+                <div className={`border-t-2 ${colors.border} ${colors.bg} p-6`}>
+                  {/* Current Goal Header */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <Target className={`h-5 w-5 ${colors.text}`} />
+                    <h2 className="text-lg font-semibold text-gray-900">Current Goal</h2>
+                    <span className={`text-sm px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
+                      {area.name}
+                    </span>
+                  </div>
+
+                  {/* Goal Content */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      {/* Completion Checkbox */}
+                      <button
+                        onClick={() => toggleCompleted(subcategoryId)}
+                        className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
+                          isCompleted 
+                            ? 'bg-green-500 border-green-500 text-white' 
+                            : 'border-gray-300 hover:border-green-400 bg-white'
+                        }`}
+                      >
+                        {isCompleted && <Check className="h-4 w-4" />}
+                      </button>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-sm font-mono px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>
+                            {subcategory.code}
+                          </span>
+                          <span className="text-sm text-gray-500">{category.name}</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {subcategory.name}
+                        </h3>
+                        {currentLevel > 0 && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Current: <span className="font-medium">{PROGRESSION_LEVELS[currentLevel - 1].name}</span>
+                            <span className="text-gray-400 ml-1">— {PROGRESSION_LEVELS[currentLevel - 1].description}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Level Selector */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {PROGRESSION_LEVELS.map((levelInfo) => (
+                        <button
+                          key={levelInfo.level}
+                          onClick={() => updateLevel(subcategoryId, levelInfo.level)}
+                          title={`${levelInfo.name} (${levelInfo.shortName})`}
+                          className={`w-9 h-9 rounded-full text-xs font-bold transition-all ${
+                            currentLevel >= levelInfo.level
+                              ? `${levelInfo.color} text-white`
+                              : 'bg-white text-gray-400 hover:bg-gray-100 border border-gray-200'
+                          }`}
+                        >
+                          {levelInfo.shortName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Plan Section */}
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    {/* Error Message */}
+                    {generationError && generatingPlan === null && (
+                      <div className="m-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-red-700 font-medium">Generation Failed</p>
+                          <p className="text-xs text-red-600">{generationError}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {generatingPlan === subcategoryId ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
+                        <p className="text-sm text-gray-600 font-medium">Generating personalized plan...</p>
+                        <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
+                      </div>
+                    ) : editingPlan === subcategoryId ? (
+                      <div className="p-4">
+                        <textarea
+                          value={editedPlan}
+                          onChange={(e) => setEditedPlan(e.target.value)}
+                          className="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono text-sm bg-white"
+                          placeholder="Write your personalized teaching plan..."
+                        />
+                        <div className="flex justify-end gap-2 mt-3">
+                          <button
+                            onClick={() => setEditingPlan(null)}
+                            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => savePlan(subcategoryId)}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                          >
+                            <Save className="h-4 w-4 mr-1" />
+                            Save Plan
+                          </button>
+                        </div>
+                      </div>
+                    ) : hasPlan ? (
+                      <div className="p-4">
+                        <div className="prose prose-sm max-w-none mb-4">
+                          <div className="whitespace-pre-wrap text-gray-700 text-sm">
+                            {hasPlan}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
+                          <button
+                            onClick={() => generatePlan(subcategoryId, area.name, category.name, subcategory)}
+                            className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 border border-indigo-200"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Regenerate
+                          </button>
+                          <button
+                            onClick={() => setShowInstructions(subcategoryId)}
+                            className="inline-flex items-center px-3 py-1.5 bg-white text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
+                          >
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            With Instructions
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingPlan(subcategoryId);
+                              setEditedPlan(hasPlan);
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 bg-white text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setProgress(prev => ({
+                                ...prev,
+                                [subcategoryId]: {
+                                  ...prev[subcategoryId],
+                                  plan: null
+                                }
+                              }));
+                              await deletePlanFromDb(subcategoryId);
+                            }}
+                            className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 border border-red-200"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ) : showInstructions === subcategoryId ? (
+                      <div className="p-4 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <MessageCircle className="h-4 w-4 inline mr-1" />
+                            Additional Instructions (Optional)
+                          </label>
+                          <textarea
+                            value={customInstructions[subcategoryId] || ''}
+                            onChange={(e) => setCustomInstructions(prev => ({
+                              ...prev,
+                              [subcategoryId]: e.target.value
+                            }))}
+                            placeholder={`Add specific instructions for ${student.firstName}'s plan...`}
+                            className="w-full h-24 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-sm bg-white"
+                          />
+                        </div>
+                        
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => setShowInstructions(null)}
+                            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => generatePlan(subcategoryId, area.name, category.name, subcategory)}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                          >
+                            <Wand2 className="h-4 w-4 mr-1" />
+                            Generate Plan
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 space-y-4">
+                        <div className="text-center py-4">
+                          <Wand2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">
+                            Generate a personalized teaching plan for <strong>{subcategory.name}</strong>
+                          </p>
+                        </div>
+                        
+                        <div className="flex flex-wrap justify-center gap-3">
+                          <button
+                            onClick={() => generatePlan(subcategoryId, area.name, category.name, subcategory)}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                          >
+                            <Wand2 className="h-4 w-4 mr-1" />
+                            Generate with AI
+                          </button>
+                          <button
+                            onClick={() => setShowInstructions(subcategoryId)}
+                            className="inline-flex items-center px-4 py-2 bg-white text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 border border-indigo-200"
+                          >
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            Add Instructions
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingPlan(subcategoryId);
+                              setEditedPlan('');
+                            }}
+                            className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Write Manually
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
+          ) : completedSubcategories > 0 ? (
+            <div className="border-t-2 border-green-300 bg-green-50 p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+                  <Check className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-green-800">All Goals Completed!</h2>
+                  <p className="text-sm text-green-600">Congratulations! {student.firstName} has completed all {totalSubcategories} AET goals.</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Level Legend */}
@@ -513,8 +691,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           <div className="flex flex-wrap gap-4">
             {PROGRESSION_LEVELS.map((levelInfo) => (
               <div key={levelInfo.level} className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${levelInfo.color}`}>
-                  {levelInfo.level}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${levelInfo.color}`}>
+                  {levelInfo.shortName}
                 </div>
                 <span className="text-sm text-gray-600">{levelInfo.name}</span>
               </div>
@@ -646,19 +824,19 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         </div>
 
                                         {/* Level Selector */}
-                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                        <div className="flex items-center gap-1 shrink-0">
                                           {PROGRESSION_LEVELS.map((levelInfo) => (
                                             <button
                                               key={levelInfo.level}
                                               onClick={() => updateLevel(subcategory.id, levelInfo.level)}
-                                              title={levelInfo.name}
-                                              className={`w-6 h-6 rounded-full text-xs font-bold transition-all ${
+                                              title={`${levelInfo.name} (${levelInfo.shortName})`}
+                                              className={`w-7 h-7 rounded-full text-[10px] font-bold transition-all ${
                                                 currentLevel >= levelInfo.level
                                                   ? `${levelInfo.color} text-white`
                                                   : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                                               }`}
                                             >
-                                              {levelInfo.level}
+                                              {levelInfo.shortName}
                                             </button>
                                           ))}
                                         </div>
@@ -771,7 +949,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 Edit
                                               </button>
                                               <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                   setProgress(prev => ({
                                                     ...prev,
                                                     [subcategory.id]: {
@@ -779,6 +957,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                       plan: null
                                                     }
                                                   }));
+                                                  // Delete from database
+                                                  await deletePlanFromDb(subcategory.id);
                                                 }}
                                                 className="inline-flex items-center px-2 py-1 bg-red-50 text-red-600 rounded text-xs font-medium hover:bg-red-100 border border-red-200"
                                               >

@@ -642,10 +642,10 @@ export const COLOR_CLASSES: Record<string, {
 
 // Progression levels (same for all subcategories)
 export const PROGRESSION_LEVELS = [
-  { level: 1, name: 'Focused support', color: 'bg-red-400', description: 'Requires focused, individualised support' },
-  { level: 2, name: 'Targeted support', color: 'bg-amber-400', description: 'Requires targeted support in specific areas' },
-  { level: 3, name: 'Moderate support', color: 'bg-blue-400', description: 'Requires moderate support to maintain skills' },
-  { level: 4, name: 'Independent', color: 'bg-green-500', description: 'Demonstrates skill independently' },
+  { level: 1, name: 'Not yet developed', shortName: 'NYD', color: 'bg-red-400', description: 'Skill is not yet developed and requires focused support' },
+  { level: 2, name: 'Developing', shortName: 'Dev', color: 'bg-amber-400', description: 'Skill is developing with targeted support' },
+  { level: 3, name: 'Established', shortName: 'Est', color: 'bg-blue-400', description: 'Skill is established and consistent' },
+  { level: 4, name: 'Generalised', shortName: 'Gen', color: 'bg-green-500', description: 'Skill is generalised across different contexts' },
 ];
 
 // Helper function to get total subcategory count
