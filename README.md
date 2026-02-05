@@ -1,4 +1,4 @@
-# AET Teacher Portal
+# TrainTrack
 
 > **An AI-powered web application for teachers of autistic children to manage Individualized Education Plans (IEPs) using the Autism Education Trust (AET) Progression Framework.**
 
@@ -46,7 +46,7 @@ Teachers working with autistic children face significant challenges when creatin
 
 ## 💡 Our Solution
 
-The **AET Teacher Portal** is a comprehensive web application that:
+**TrainTrack** is a comprehensive web application that:
 
 - ✅ **Digitizes the entire AET Progression Framework** with an intuitive, collapsible interface
 - ✅ **Centralizes student information** including profiles, diagnoses, strengths, challenges, and behavioral data

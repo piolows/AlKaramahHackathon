@@ -1,8 +1,5 @@
-'use client';
-
 import Link from 'next/link';
 import { 
-  GraduationCap, 
   Users, 
   Target, 
   Sparkles, 
@@ -10,39 +7,12 @@ import {
   BookOpen,
   ArrowRight,
   Heart,
-  Brain,
-  Lightbulb
+  Brain
 } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <GraduationCap className="h-8 w-8 text-indigo-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">AET Portal</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/classes" 
-                className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-              >
-                Classes
-              </Link>
-              <Link 
-                href="/classes" 
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div>
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-purple-50"></div>
@@ -259,26 +229,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <GraduationCap className="h-8 w-8 text-indigo-400" />
-              <span className="ml-2 text-xl font-bold text-white">AET Portal</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm">
-              <Lightbulb className="h-4 w-4" />
-              <span>Built with love for special education teachers</span>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm">
-            <p>Based on the Autism Education Trust (AET) Progression Framework</p>
-            <p className="mt-2">2026 AET Teacher Portal. Created for Al Karamah Hackathon.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

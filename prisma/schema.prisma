@@ -1,4 +1,4 @@
-// Prisma Schema for AET Teacher Portal
+// Prisma Schema for TrainTrack
 // Database: SQLite
 
 generator client {

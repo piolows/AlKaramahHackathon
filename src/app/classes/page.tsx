@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  GraduationCap, 
   Users, 
   ChevronRight,
   School,
   Settings
 } from 'lucide-react';
+import { Breadcrumb, LoadingSpinner } from '@/components';
 
 interface ClassData {
   id: string;
@@ -53,52 +53,15 @@ export default function ClassesPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <GraduationCap className="h-8 w-8 text-indigo-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900">AET Portal</span>
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/classes" 
-                className="text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Classes
-              </Link>
-              <Link 
-                href="/admin" 
-                className="flex items-center gap-1 text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                <Settings className="h-4 w-4" />
-                Admin
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-[60vh]">
       {/* Page Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
-        <div className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
-          <Link href="/" className="hover:text-indigo-600">Home</Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-gray-900">Classes</span>
-        </div>
+        <Breadcrumb items={[{ label: 'Classes' }]} />
 
         {/* Page Header */}
         <div className="mb-8">
