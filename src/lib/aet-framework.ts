@@ -33,7 +33,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'communication-interaction',
       name: 'Communication and Interaction',
       description: 'Skills related to communicating with others and understanding communication',
-      color: 'blue',
+      color: 'navy',
       categories: [
         {
           id: 'engaging-interaction',
@@ -124,7 +124,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'social-understanding',
       name: 'Social Understanding and Relationships',
       description: 'Skills related to social interaction and building relationships',
-      color: 'green',
+      color: 'red',
       categories: [
         {
           id: 'being-with-others',
@@ -190,7 +190,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'sensory-processing',
       name: 'Sensory Processing',
       description: 'Understanding and managing sensory needs and responses',
-      color: 'purple',
+      color: 'teal',
       categories: [
         {
           id: 'understanding-sensory-needs',
@@ -239,7 +239,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'interests-routines',
       name: 'Interests, Routines and Processing',
       description: 'Managing change, transitions, interests and problem-solving',
-      color: 'amber',
+      color: 'purple',
       categories: [
         {
           id: 'coping-with-change',
@@ -290,7 +290,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'emotional-understanding',
       name: 'Emotional Understanding and Self-awareness',
       description: 'Understanding emotions, managing behaviour and self-awareness',
-      color: 'rose',
+      color: 'green',
       categories: [
         {
           id: 'understanding-own-emotions',
@@ -358,7 +358,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'learning-engagement',
       name: 'Learning and Engagement',
       description: 'Play, motivation, organisation and evaluating learning',
-      color: 'cyan',
+      color: 'orange',
       categories: [
         {
           id: 'learning-through-play',
@@ -441,7 +441,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'healthy-living',
       name: 'Healthy Living',
       description: 'Health, personal care and relationships education',
-      color: 'emerald',
+      color: 'blue',
       categories: [
         {
           id: 'keeping-healthy',
@@ -499,7 +499,7 @@ export const AET_FRAMEWORK: AETFramework = {
       id: 'independence-community',
       name: 'Independence and Community Participation',
       description: 'Independent living, safety, travel and leisure',
-      color: 'orange',
+      color: 'slate',
       categories: [
         {
           id: 'independent-living',
@@ -582,6 +582,30 @@ export const COLOR_CLASSES: Record<string, {
     textDark: 'text-blue-800',
     border: 'border-blue-200',
   },
+  navy: {
+    bg: 'bg-indigo-50',
+    bgDark: 'bg-indigo-100',
+    bgAccent: 'bg-indigo-800',
+    text: 'text-indigo-700',
+    textDark: 'text-indigo-900',
+    border: 'border-indigo-300',
+  },
+  red: {
+    bg: 'bg-red-50',
+    bgDark: 'bg-red-100',
+    bgAccent: 'bg-red-500',
+    text: 'text-red-600',
+    textDark: 'text-red-800',
+    border: 'border-red-200',
+  },
+  teal: {
+    bg: 'bg-teal-50',
+    bgDark: 'bg-teal-100',
+    bgAccent: 'bg-teal-600',
+    text: 'text-teal-600',
+    textDark: 'text-teal-800',
+    border: 'border-teal-200',
+  },
   green: {
     bg: 'bg-green-50',
     bgDark: 'bg-green-100',
@@ -593,10 +617,18 @@ export const COLOR_CLASSES: Record<string, {
   purple: {
     bg: 'bg-purple-50',
     bgDark: 'bg-purple-100',
-    bgAccent: 'bg-purple-500',
-    text: 'text-purple-600',
-    textDark: 'text-purple-800',
-    border: 'border-purple-200',
+    bgAccent: 'bg-purple-700',
+    text: 'text-purple-700',
+    textDark: 'text-purple-900',
+    border: 'border-purple-300',
+  },
+  slate: {
+    bg: 'bg-slate-100',
+    bgDark: 'bg-slate-200',
+    bgAccent: 'bg-slate-700',
+    text: 'text-slate-700',
+    textDark: 'text-slate-900',
+    border: 'border-slate-300',
   },
   amber: {
     bg: 'bg-amber-50',

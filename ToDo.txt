@@ -14,7 +14,6 @@
 	- Maybe change LLM
 - Admin page: extra tab for adding diagnoses options
 - Feedback and/or prompt when marking goal completed
-- Fix colors for goal levels and goal categories as per AET document
 - Goals accomplished per day display
 - Refine prompt
 	- Take into account grade and British curriculum
