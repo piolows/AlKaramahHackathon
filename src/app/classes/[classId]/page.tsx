@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { 
   GraduationCap, 
   ChevronRight,
+  ChevronLeft,
   Users,
   ArrowLeft,
   Brain,
@@ -24,7 +25,8 @@ import {
   Loader2,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  SkipForward
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 
@@ -88,6 +90,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   // State for generating all plans
   const [generatingAllPlans, setGeneratingAllPlans] = useState(false);
   const [allPlansProgress, setAllPlansProgress] = useState<{ current: number; total: number } | null>(null);
+  const [showAllInstructions, setShowAllInstructions] = useState(false);
+  const [allPlansInstructions, setAllPlansInstructions] = useState('');
+  
+  // State for goal navigation (studentId -> subcategoryId of viewed goal)
+  const [viewedGoals, setViewedGoals] = useState<Record<string, string>>({});
+  // State for completion animation (studentId -> 'completing' | 'fading' | null)
+  const [completionPhase, setCompletionPhase] = useState<Record<string, 'completing' | 'fading' | null>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -126,7 +135,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     fetchData();
   }, [classId]);
 
-  // Get current goal for a student
+  // Get all goals as a flat list
+  const getAllGoals = (): CurrentGoal[] => {
+    const goals: CurrentGoal[] = [];
+    for (const area of AET_FRAMEWORK.areas) {
+      for (const category of area.categories) {
+        for (const subcategory of category.subcategories) {
+          goals.push({ subcategoryId: subcategory.id, area, category, subcategory });
+        }
+      }
+    }
+    return goals;
+  };
+
+  // Get current goal for a student (first incomplete)
   const getCurrentGoal = (studentId: string): CurrentGoal | null => {
     const progress = studentProgress[studentId] || {};
     for (const area of AET_FRAMEWORK.areas) {
@@ -140,6 +162,66 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       }
     }
     return null;
+  };
+
+  // Get goal by subcategory ID
+  const getGoalBySubcategoryId = (subcategoryId: string): CurrentGoal | null => {
+    for (const area of AET_FRAMEWORK.areas) {
+      for (const category of area.categories) {
+        for (const subcategory of category.subcategories) {
+          if (subcategory.id === subcategoryId) {
+            return { subcategoryId: subcategory.id, area, category, subcategory };
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Get the goal to display for a student (either viewed goal or current goal)
+  const getDisplayedGoal = (studentId: string): CurrentGoal | null => {
+    const viewedGoalId = viewedGoals[studentId];
+    if (viewedGoalId) {
+      return getGoalBySubcategoryId(viewedGoalId);
+    }
+    return getCurrentGoal(studentId);
+  };
+
+  // Navigate to previous/next goal
+  const navigateGoal = (studentId: string, direction: 'prev' | 'next') => {
+    const allGoals = getAllGoals();
+    const currentDisplayed = getDisplayedGoal(studentId);
+    if (!currentDisplayed) return;
+    
+    const currentIndex = allGoals.findIndex(g => g.subcategoryId === currentDisplayed.subcategoryId);
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    
+    // Clamp to valid range
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= allGoals.length) newIndex = allGoals.length - 1;
+    
+    const newGoal = allGoals[newIndex];
+    setViewedGoals(prev => ({
+      ...prev,
+      [studentId]: newGoal.subcategoryId
+    }));
+  };
+
+  // Jump to current goal (clear viewed goal override)
+  const jumpToCurrentGoal = (studentId: string) => {
+    setViewedGoals(prev => {
+      const newViewed = { ...prev };
+      delete newViewed[studentId];
+      return newViewed;
+    });
+  };
+
+  // Check if we're viewing the actual current goal
+  const isViewingCurrentGoal = (studentId: string): boolean => {
+    const viewedGoalId = viewedGoals[studentId];
+    if (!viewedGoalId) return true;
+    const currentGoal = getCurrentGoal(studentId);
+    return currentGoal?.subcategoryId === viewedGoalId;
   };
 
   // Save progress to database
@@ -189,14 +271,17 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     saveProgress(studentId, subcategoryId, newProgress);
   };
 
-  // Toggle completed for a student's subcategory
-  const toggleCompleted = (studentId: string, subcategoryId: string) => {
+  // Toggle completed for a student's subcategory with animation
+  const toggleCompleted = async (studentId: string, subcategoryId: string) => {
     const currentProgress = studentProgress[studentId]?.[subcategoryId] || { level: 0, completed: false, plan: null };
+    const willBeCompleted = !currentProgress.completed;
+    
     const newProgress = {
       level: currentProgress.level || 1,
-      completed: !currentProgress.completed,
+      completed: willBeCompleted,
       plan: currentProgress.plan
     };
+    
     setStudentProgress(prev => ({
       ...prev,
       [studentId]: {
@@ -205,6 +290,29 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       }
     }));
     saveProgress(studentId, subcategoryId, newProgress);
+    
+    // If marking as complete, show animation with fade in, then fade out
+    if (willBeCompleted) {
+      // Phase 1: Fade in
+      setCompletionPhase(prev => ({ ...prev, [studentId]: 'completing' }));
+      
+      // Wait for display time
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Phase 2: Fade out
+      setCompletionPhase(prev => ({ ...prev, [studentId]: 'fading' }));
+      
+      // Wait for fade out animation
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Phase 3: Clear and move to next goal
+      setCompletionPhase(prev => ({ ...prev, [studentId]: null }));
+      setViewedGoals(prev => {
+        const newViewed = { ...prev };
+        delete newViewed[studentId];
+        return newViewed;
+      });
+    }
   };
 
   // Generate plan for a student
@@ -321,7 +429,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   };
 
   // Generate plans for all students' current goals
-  const generateAllPlans = async () => {
+  const generateAllPlans = async (globalInstructions?: string) => {
     // Capture goals and progress upfront to avoid stale state issues
     const studentsWithGoals: Array<{
       student: Student;
@@ -343,6 +451,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setGeneratingAllPlans(true);
     setAllPlansProgress({ current: 0, total: studentsWithGoals.length });
     setGenerationError(null);
+    setShowAllInstructions(false);
 
     for (let i = 0; i < studentsWithGoals.length; i++) {
       const { student, goal, progress } = studentsWithGoals[i];
@@ -381,6 +490,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               nextLevelDescription: nextLevelInfo?.description || null,
               areaName: goal.area.name,
             },
+            customInstructions: globalInstructions || undefined,
           }),
         });
 
@@ -501,7 +611,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               </div>
             </div>
             
-            {/* Generate All Plans Button */}
+            {/* Generate All Plans Buttons */}
             {students.length > 0 && (() => {
               const studentsNeedingPlans = students.filter(student => {
                 const goal = getCurrentGoal(student.id);
@@ -510,33 +620,81 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 return !progress?.plan;
               });
               
-              if (studentsNeedingPlans.length === 0) return null;
+              const hasStudentsNeedingPlans = studentsNeedingPlans.length > 0;
               
               return (
-                <button
-                  onClick={generateAllPlans}
-                  disabled={generatingAllPlans}
-                  className="mt-4 md:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {generatingAllPlans ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {allPlansProgress ? (
-                        <span>Generating {allPlansProgress.current}/{allPlansProgress.total}...</span>
-                      ) : (
-                        <span>Starting...</span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>Generate All Plans ({studentsNeedingPlans.length})</span>
-                    </>
-                  )}
-                </button>
+                <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
+                  <button
+                    onClick={() => generateAllPlans()}
+                    disabled={generatingAllPlans || !hasStudentsNeedingPlans}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generatingAllPlans ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {allPlansProgress ? (
+                          <span>Generating {allPlansProgress.current}/{allPlansProgress.total}...</span>
+                        ) : (
+                          <span>Starting...</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        <span>Generate All {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowAllInstructions(true)}
+                    disabled={generatingAllPlans || !hasStudentsNeedingPlans}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>Add Instructions</span>
+                  </button>
+                </div>
               );
             })()}
           </div>
+          
+          {/* Generate All with Instructions Panel */}
+          {showAllInstructions && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-start gap-3">
+                <MessageCircle className="h-5 w-5 text-indigo-500 mt-1 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Custom Instructions for All Plans</h3>
+                  <p className="text-xs text-gray-500 mb-3">These instructions will be applied to all generated plans in this class.</p>
+                  <textarea
+                    value={allPlansInstructions}
+                    onChange={(e) => setAllPlansInstructions(e.target.value)}
+                    placeholder="E.g., Focus on visual supports, include parent involvement activities, keep activities under 10 minutes..."
+                    className="w-full h-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  />
+                  <div className="flex justify-end gap-2 mt-3">
+                    <button
+                      onClick={() => {
+                        setShowAllInstructions(false);
+                        setAllPlansInstructions('');
+                      }}
+                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => generateAllPlans(allPlansInstructions)}
+                      disabled={generatingAllPlans}
+                      className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Generate All Plans
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Students Grid */}
@@ -560,13 +718,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         ) : (
           <div className="space-y-4">
             {students.map((student) => {
-              const currentGoal = getCurrentGoal(student.id);
-              const goalKey = currentGoal ? `${student.id}-${currentGoal.subcategoryId}` : null;
+              const displayedGoal = getDisplayedGoal(student.id);
+              const actualCurrentGoal = getCurrentGoal(student.id);
+              const goalKey = displayedGoal ? `${student.id}-${displayedGoal.subcategoryId}` : null;
               const isGoalExpanded = goalKey ? expandedGoals[goalKey] : false;
-              const progress = currentGoal ? studentProgress[student.id]?.[currentGoal.subcategoryId] : null;
+              const progress = displayedGoal ? studentProgress[student.id]?.[displayedGoal.subcategoryId] : null;
               const currentLevel = progress?.level || 0;
               const hasPlan = progress?.plan;
-              const colors = currentGoal ? COLOR_CLASSES[currentGoal.area.color] : null;
+              const colors = displayedGoal ? COLOR_CLASSES[displayedGoal.area.color] : null;
+              const animationPhase = completionPhase[student.id];
+              const isAtCurrentGoal = isViewingCurrentGoal(student.id);
+              const allGoals = getAllGoals();
+              const currentGoalIndex = displayedGoal ? allGoals.findIndex(g => g.subcategoryId === displayedGoal.subcategoryId) : -1;
+              const isFirstGoal = currentGoalIndex === 0;
+              const isLastGoal = currentGoalIndex === allGoals.length - 1;
 
               return (
                 <div
@@ -598,9 +763,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       {/* Quick Info */}
                       <div className="space-y-2 mb-4">
                         {student.diagnoses.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Brain className="h-4 w-4 text-purple-500 shrink-0" />
-                            <span className="text-sm text-gray-600">{student.diagnoses[0]}</span>
+                          <div className="flex items-start gap-2">
+                            <Brain className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                            <span className="text-sm text-gray-600">{student.diagnoses.join(', ')}</span>
                           </div>
                         )}
                         {student.communicationStyle && (
@@ -630,15 +795,68 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
                     {/* Right Side - Current Goal */}
                     <div className="lg:w-2/3 flex flex-col">
-                      {currentGoal && colors ? (
-                        <div className={`flex-1 ${colors.bg} p-6`}>
-                          {/* Goal Header */}
-                          <div className="flex items-center gap-2 mb-4">
-                            <Target className={`h-5 w-5 ${colors.text}`} />
-                            <span className="text-sm font-semibold text-gray-700">Current Goal</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
-                              {currentGoal.area.name}
-                            </span>
+                      {displayedGoal && colors ? (
+                        <div className={`flex-1 ${colors.bg} p-6 relative ${animationPhase ? 'overflow-hidden' : ''}`}>
+                          {/* Completion Animation Overlay */}
+                          {animationPhase && (
+                            <div className={`absolute inset-0 bg-green-500/95 flex flex-col items-center justify-center z-10 ${animationPhase === 'fading' ? 'animate-fade-out-scale' : 'animate-fade-in-scale'}`}>
+                              <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-3 animate-success-pulse">
+                                <Check className="h-10 w-10 text-green-500" />
+                              </div>
+                              <p className="text-white font-bold text-lg animate-fade-in-up">Goal Completed!</p>
+                              <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>Moving to next goal...</p>
+                            </div>
+                          )}
+                          
+                          {/* Goal Header with Navigation */}
+                          <div className="flex items-center justify-between gap-2 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Target className={`h-5 w-5 ${colors.text}`} />
+                              <span className="text-sm font-semibold text-gray-700">
+                                {isAtCurrentGoal ? 'Current Goal' : 'Viewing Goal'}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
+                                {displayedGoal.area.name}
+                              </span>
+                              {!isAtCurrentGoal && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${progress?.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                  {progress?.completed ? 'Completed' : 'Not Current'}
+                                </span>
+                              )}
+                            </div>
+                            
+                            {/* Navigation Buttons */}
+                            <div className="flex items-center gap-1">
+                              {!isAtCurrentGoal && actualCurrentGoal && (
+                                <button
+                                  onClick={() => jumpToCurrentGoal(student.id)}
+                                  className="mr-1 px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors flex items-center gap-1"
+                                  title="Jump to current goal"
+                                >
+                                  <SkipForward className="h-3 w-3" />
+                                  Current
+                                </button>
+                              )}
+                              <button
+                                onClick={() => navigateGoal(student.id, 'prev')}
+                                disabled={isFirstGoal}
+                                className="p-1.5 rounded-lg hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                title="Previous goal"
+                              >
+                                <ChevronLeft className="h-4 w-4 text-gray-600" />
+                              </button>
+                              <span className="text-xs text-gray-500 px-1">
+                                {currentGoalIndex + 1}/{allGoals.length}
+                              </span>
+                              <button
+                                onClick={() => navigateGoal(student.id, 'next')}
+                                disabled={isLastGoal}
+                                className="p-1.5 rounded-lg hover:bg-white/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                title="Next goal"
+                              >
+                                <ChevronRight className="h-4 w-4 text-gray-600" />
+                              </button>
+                            </div>
                           </div>
 
                           {/* Goal Content */}
@@ -646,11 +864,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             <div className="flex items-start gap-3 flex-1">
                               {/* Completion Checkbox */}
                               <button
-                                onClick={() => toggleCompleted(student.id, currentGoal.subcategoryId)}
-                                className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${
+                                onClick={() => toggleCompleted(student.id, displayedGoal.subcategoryId)}
+                                className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
                                   progress?.completed 
-                                    ? 'bg-green-500 border-green-500 text-white' 
-                                    : 'border-gray-300 hover:border-green-400 bg-white'
+                                    ? 'bg-green-500 border-green-500 text-white scale-110' 
+                                    : 'border-gray-300 hover:border-green-400 bg-white hover:scale-105'
                                 }`}
                               >
                                 {progress?.completed && <Check className="h-4 w-4" />}
@@ -659,12 +877,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className={`text-sm font-mono px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>
-                                    {currentGoal.subcategory.code}
+                                    {displayedGoal.subcategory.code}
                                   </span>
-                                  <span className="text-xs text-gray-500">{currentGoal.category.name}</span>
+                                  <span className="text-xs text-gray-500">{displayedGoal.category.name}</span>
                                 </div>
                                 <p className="text-base font-medium text-gray-900">
-                                  {currentGoal.subcategory.name}
+                                  {displayedGoal.subcategory.name}
                                 </p>
                               </div>
                             </div>
@@ -674,7 +892,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               {PROGRESSION_LEVELS.map((levelInfo) => (
                                 <button
                                   key={levelInfo.level}
-                                  onClick={() => updateLevel(student.id, currentGoal.subcategoryId, levelInfo.level)}
+                                  onClick={() => updateLevel(student.id, displayedGoal.subcategoryId, levelInfo.level)}
                                   title={`${levelInfo.name} (${levelInfo.shortName})`}
                                   className={`w-8 h-8 rounded-full text-xs font-bold transition-all ${
                                     currentLevel >= levelInfo.level
@@ -747,7 +965,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         Cancel
                                       </button>
                                       <button
-                                        onClick={() => savePlan(student.id, currentGoal.subcategoryId)}
+                                        onClick={() => savePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
                                       >
                                         <Save className="h-4 w-4 mr-1" />
@@ -762,18 +980,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     </div>
                                     <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
                                       <button
-                                        onClick={() => generatePlan(student, currentGoal.subcategoryId, currentGoal.area.name, currentGoal.category.name, currentGoal.subcategory)}
+                                        onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100"
                                       >
                                         <RefreshCw className="h-4 w-4 mr-1" />
                                         Regenerate
-                                      </button>
-                                      <button
-                                        onClick={() => setShowInstructions(goalKey)}
-                                        className="inline-flex items-center px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100"
-                                      >
-                                        <MessageCircle className="h-4 w-4 mr-1" />
-                                        With Instructions
                                       </button>
                                       <button
                                         onClick={() => {
@@ -786,7 +997,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         Edit
                                       </button>
                                       <button
-                                        onClick={() => deletePlan(student.id, currentGoal.subcategoryId)}
+                                        onClick={() => deletePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"
                                       >
                                         <Trash2 className="h-4 w-4 mr-1" />
@@ -819,7 +1030,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         Cancel
                                       </button>
                                       <button
-                                        onClick={() => generatePlan(student, currentGoal.subcategoryId, currentGoal.area.name, currentGoal.category.name, currentGoal.subcategory)}
+                                        onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
@@ -832,12 +1043,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="text-center py-4">
                                       <Wand2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                                       <p className="text-sm text-gray-600">
-                                        Generate a personalized plan for <strong>{currentGoal.subcategory.name}</strong>
+                                        Generate a personalized plan for <strong>{displayedGoal.subcategory.name}</strong>
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap justify-center gap-3">
                                       <button
-                                        onClick={() => generatePlan(student, currentGoal.subcategoryId, currentGoal.area.name, currentGoal.category.name, currentGoal.subcategory)}
+                                        onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />

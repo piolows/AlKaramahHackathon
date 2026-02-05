@@ -23,7 +23,7 @@
 - Feedback and/or prompt when marking goal completed
 - Go back to previous goal button (back / forward / back to current goal)
 - Fix colors for goal levels and goal categories as per AET document
-- Generate all with prompt
+- Generate all with prompt (done)
 - Goals accomplished per day display
 - Display all diagnoses in classroom page
 - Refine prompt

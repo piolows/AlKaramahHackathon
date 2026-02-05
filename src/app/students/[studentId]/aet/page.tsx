@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { 
   GraduationCap, 
   ChevronRight,
+  ChevronLeft,
   ArrowLeft,
   ChevronDown,
   ChevronUp,
@@ -22,7 +23,8 @@ import {
   Loader2,
   Trash2,
   Settings,
-  Target
+  Target,
+  SkipForward
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area, findSubcategoryById } from '@/lib/aet-framework';
 
@@ -67,6 +69,11 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   const [customInstructions, setCustomInstructions] = useState<Record<string, string>>({});
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  
+  // Navigation state for browsing through goals
+  const [viewedGoal, setViewedGoal] = useState<string | null>(null);
+  // Animation state for goal completion: 'completing' shows the overlay, 'fading' triggers fade-out
+  const [completionPhase, setCompletionPhase] = useState<'completing' | 'fading' | null>(null);
 
   // Fetch student and progress data
   useEffect(() => {
@@ -191,17 +198,45 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     saveProgress(subcategoryId, newProgress);
   };
 
-  const toggleCompleted = (subcategoryId: string) => {
+  const toggleCompleted = async (subcategoryId: string) => {
+    const wasCompleted = progress[subcategoryId]?.completed || false;
+    const newCompleted = !wasCompleted;
+    
     const newProgress = {
       level: progress[subcategoryId]?.level || 1,
-      completed: !progress[subcategoryId]?.completed,
+      completed: newCompleted,
       plan: progress[subcategoryId]?.plan || null
     };
-    setProgress(prev => ({
-      ...prev,
-      [subcategoryId]: newProgress
-    }));
-    saveProgress(subcategoryId, newProgress);
+    
+    // If completing (not uncompleting), show animation
+    if (newCompleted) {
+      setCompletionPhase('completing');
+      
+      // Update progress immediately for visual feedback
+      setProgress(prev => ({
+        ...prev,
+        [subcategoryId]: newProgress
+      }));
+      saveProgress(subcategoryId, newProgress);
+      
+      // Show completion message
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Start fade out
+      setCompletionPhase('fading');
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Clear animation and move to next goal
+      setCompletionPhase(null);
+      setViewedGoal(null); // This will automatically show the next current goal
+    } else {
+      // Just uncompleting, no animation needed
+      setProgress(prev => ({
+        ...prev,
+        [subcategoryId]: newProgress
+      }));
+      saveProgress(subcategoryId, newProgress);
+    }
   };
 
   const generatePlan = async (
@@ -320,7 +355,14 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   };
 
   // Find the current goal (last unfinished subcategory - first one that isn't completed)
-  const getCurrentGoal = (): { subcategoryId: string; area: Area; category: Category; subcategory: Subcategory } | null => {
+  interface GoalInfo {
+    subcategoryId: string;
+    area: Area;
+    category: Category;
+    subcategory: Subcategory;
+  }
+  
+  const getCurrentGoal = (): GoalInfo | null => {
     for (const area of AET_FRAMEWORK.areas) {
       for (const category of area.categories) {
         for (const subcategory of category.subcategories) {
@@ -335,7 +377,65 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     return null; // All goals completed!
   };
 
+  // Get all goals as a flat list for navigation
+  const getAllGoals = (): GoalInfo[] => {
+    const goals: GoalInfo[] = [];
+    for (const area of AET_FRAMEWORK.areas) {
+      for (const category of area.categories) {
+        for (const subcategory of category.subcategories) {
+          goals.push({ subcategoryId: subcategory.id, area, category, subcategory });
+        }
+      }
+    }
+    return goals;
+  };
+
+  // Get goal by subcategory ID
+  const getGoalBySubcategoryId = (subcategoryId: string): GoalInfo | null => {
+    const allGoals = getAllGoals();
+    return allGoals.find(g => g.subcategoryId === subcategoryId) || null;
+  };
+
+  // Get the displayed goal (either viewed goal or current goal)
+  const getDisplayedGoal = (): GoalInfo | null => {
+    if (viewedGoal) {
+      return getGoalBySubcategoryId(viewedGoal);
+    }
+    return getCurrentGoal();
+  };
+
+  // Navigate to previous/next goal
+  const navigateGoal = (direction: 'prev' | 'next') => {
+    const allGoals = getAllGoals();
+    const displayedGoal = getDisplayedGoal();
+    if (!displayedGoal) return;
+    
+    const currentIndex = allGoals.findIndex(g => g.subcategoryId === displayedGoal.subcategoryId);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < allGoals.length) {
+      setViewedGoal(allGoals[newIndex].subcategoryId);
+    }
+  };
+
+  // Jump back to current goal
+  const jumpToCurrentGoal = () => {
+    setViewedGoal(null);
+  };
+
+  // Check if currently viewing the actual current goal
+  const isViewingCurrentGoal = (): boolean => {
+    if (!viewedGoal) return true;
+    const currentGoalData = getCurrentGoal();
+    return currentGoalData?.subcategoryId === viewedGoal;
+  };
+
   const currentGoal = getCurrentGoal();
+  const displayedGoal = getDisplayedGoal();
+  const allGoals = getAllGoals();
+  const displayedGoalIndex = displayedGoal ? allGoals.findIndex(g => g.subcategoryId === displayedGoal.subcategoryId) : -1;
+  const isAtCurrentGoal = isViewingCurrentGoal();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -428,9 +528,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           </div>
 
           {/* Current Goal Section - Integrated into header card */}
-          {currentGoal ? (
+          {displayedGoal ? (
             (() => {
-              const { subcategoryId, area, category, subcategory } = currentGoal;
+              const { subcategoryId, area, category, subcategory } = displayedGoal;
               const colors = COLOR_CLASSES[area.color];
               const subProgress = progress[subcategoryId];
               const currentLevel = subProgress?.level || 0;
@@ -438,14 +538,62 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
               const hasPlan = subProgress?.plan;
 
               return (
-                <div className={`border-t-2 ${colors.border} ${colors.bg} p-6`}>
-                  {/* Current Goal Header */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <Target className={`h-5 w-5 ${colors.text}`} />
-                    <h2 className="text-lg font-semibold text-gray-900">Current Goal</h2>
-                    <span className={`text-sm px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
-                      {area.name}
-                    </span>
+                <div className={`border-t-2 ${colors.border} ${colors.bg} p-6 relative`}>
+                  {/* Completion Animation Overlay */}
+                  {completionPhase && (
+                    <div className={`absolute inset-0 bg-green-500/95 flex flex-col items-center justify-center z-10 ${completionPhase === 'fading' ? 'animate-fade-out-scale' : 'animate-fade-in-scale'}`}>
+                      <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-3 animate-success-pulse">
+                        <Check className="h-10 w-10 text-green-500" />
+                      </div>
+                      <p className="text-white font-bold text-lg animate-fade-in-up">Goal Completed!</p>
+                      <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>Moving to next goal...</p>
+                    </div>
+                  )}
+                  
+                  {/* Current Goal Header with Navigation */}
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Target className={`h-5 w-5 ${colors.text}`} />
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {isAtCurrentGoal ? 'Current Goal' : 'Viewing Goal'}
+                      </h2>
+                      <span className={`text-sm px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
+                        {area.name}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        ({displayedGoalIndex + 1} of {allGoals.length})
+                      </span>
+                    </div>
+                    
+                    {/* Navigation Buttons */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => navigateGoal('prev')}
+                        disabled={displayedGoalIndex <= 0}
+                        className="p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Previous goal"
+                      >
+                        <ChevronLeft className="h-4 w-4 text-gray-600" />
+                      </button>
+                      <button
+                        onClick={() => navigateGoal('next')}
+                        disabled={displayedGoalIndex >= allGoals.length - 1}
+                        className="p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        title="Next goal"
+                      >
+                        <ChevronRight className="h-4 w-4 text-gray-600" />
+                      </button>
+                      {!isAtCurrentGoal && currentGoal && (
+                        <button
+                          onClick={jumpToCurrentGoal}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-medium hover:bg-indigo-100 border border-indigo-200 transition-colors"
+                          title="Jump to current goal"
+                        >
+                          <SkipForward className="h-3.5 w-3.5" />
+                          Current
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Goal Content */}
@@ -557,13 +705,6 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                           >
                             <RefreshCw className="h-4 w-4 mr-1" />
                             Regenerate
-                          </button>
-                          <button
-                            onClick={() => setShowInstructions(subcategoryId)}
-                            className="inline-flex items-center px-3 py-1.5 bg-white text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
-                          >
-                            <MessageCircle className="h-4 w-4 mr-1" />
-                            With Instructions
                           </button>
                           <button
                             onClick={() => {
@@ -929,13 +1070,6 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               >
                                                 <RefreshCw className="h-3 w-3 mr-1" />
                                                 Regenerate
-                                              </button>
-                                              <button
-                                                onClick={() => setShowInstructions(subcategory.id)}
-                                                className="inline-flex items-center px-2 py-1 bg-white text-gray-600 rounded text-xs font-medium hover:bg-gray-50 border border-gray-200"
-                                              >
-                                                <MessageCircle className="h-3 w-3 mr-1" />
-                                                With Instructions
                                               </button>
                                               <button
                                                 onClick={() => {
