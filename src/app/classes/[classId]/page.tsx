@@ -51,6 +51,7 @@ interface Student {
   supportStrategies: string[];
   triggers: string[];
   calmingStrategies: string[];
+  teacherNotes: string;
 }
 
 interface SubcategoryProgress {
@@ -241,6 +242,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             supportStrategies: student.supportStrategies,
             triggers: student.triggers,
             calmingStrategies: student.calmingStrategies,
+            teacherNotes: student.teacherNotes,
           },
           component: {
             name: subcategory.name,
@@ -369,6 +371,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               supportStrategies: student.supportStrategies,
               triggers: student.triggers,
               calmingStrategies: student.calmingStrategies,
+              teacherNotes: student.teacherNotes,
             },
             component: {
               name: goal.subcategory.name,

@@ -24,40 +24,40 @@ async function main() {
   const sunshineRoom = await prisma.class.create({
     data: {
       id: 'class-1',
-      name: 'Sunshine Room',
-      description: 'Key Stage 1 class focusing on foundational communication and social skills',
-      ageRange: 'Key Stage 1 (Ages 5-7)'
+      name: 'Class 1A',
+      description: 'Grade 1 class focusing on foundational communication and social skills',
+      ageRange: 'Grade 1 (Ages 6-7)'
     }
   })
 
   const rainbowClass = await prisma.class.create({
     data: {
       id: 'class-2',
-      name: 'Rainbow Class',
-      description: 'Key Stage 2 class working on social interaction and independence skills',
-      ageRange: 'Key Stage 2 (Ages 7-11)'
+      name: 'Class 2A',
+      description: 'Grade 2 class working on social interaction and independence skills',
+      ageRange: 'Grade 2 (Ages 7-8)'
     }
   })
 
   const discoveryGroup = await prisma.class.create({
     data: {
       id: 'class-3',
-      name: 'Discovery Group',
-      description: 'Key Stage 3 class developing life skills and emotional regulation',
-      ageRange: 'Key Stage 3 (Ages 11-14)'
+      name: 'Class 3A',
+      description: 'Grade 3 class developing life skills and emotional regulation',
+      ageRange: 'Grade 3 (Ages 8-9)'
     }
   })
 
   console.log('✅ Created 3 classes')
 
   // ============================================
-  // SEED STUDENTS - Sunshine Room
+  // SEED STUDENTS - Class 1A (Grade 1, Ages 6-7)
   // ============================================
   const oliver = await prisma.student.create({
     data: {
       id: 'student-1',
-      firstName: 'Oliver',
-      lastName: 'Thompson',
+      firstName: 'Ahmed',
+      lastName: 'Al Mansouri',
       dateOfBirth: new Date('2019-03-15'),
       classId: sunshineRoom.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Speech and Language Delay']),
@@ -68,15 +68,16 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Sensitive to loud sounds', 'Seeks proprioceptive input', 'Prefers dim lighting']),
       supportStrategies: JSON.stringify(['Visual schedules', 'Timers for transitions', 'First-then boards', 'Social stories']),
       triggers: JSON.stringify(['Sudden loud noises', 'Unexpected schedule changes', 'Crowded spaces']),
-      calmingStrategies: JSON.stringify(['Listening to music with headphones', 'Squeezing stress ball', 'Looking at train pictures', 'Quiet corner time'])
+      calmingStrategies: JSON.stringify(['Listening to music with headphones', 'Squeezing stress ball', 'Looking at train pictures', 'Quiet corner time']),
+      teacherNotes: 'Ahmed is now initiating PECS requests independently about 70% of the time. Focus next term on expanding vocabulary and introducing 2-symbol sentences.'
     }
   })
 
   const emma = await prisma.student.create({
     data: {
       id: 'student-2',
-      firstName: 'Emma',
-      lastName: 'Williams',
+      firstName: 'Fatima',
+      lastName: 'Al Hashimi',
       dateOfBirth: new Date('2019-07-22'),
       classId: sunshineRoom.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'ADHD']),
@@ -87,15 +88,16 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Needs movement breaks', 'Enjoys weighted blanket', 'Avoids certain food textures']),
       supportStrategies: JSON.stringify(['Movement breaks every 10 minutes', 'Fidget toys', 'Visual task breakdowns', 'Sticker rewards']),
       triggers: JSON.stringify(['Being asked to sit for too long', 'Loud unexpected sounds', 'Having toys taken away']),
-      calmingStrategies: JSON.stringify(['Dancing to music', 'Weighted blanket', 'Drawing', 'Cuddles with trusted adult'])
+      calmingStrategies: JSON.stringify(['Dancing to music', 'Weighted blanket', 'Drawing', 'Cuddles with trusted adult']),
+      teacherNotes: 'Fatima responds very well to praise and has a close bond with Ms. Sarah. When overwhelmed, 5 minutes of quiet drawing time helps her reset.'
     }
   })
 
   const noah = await prisma.student.create({
     data: {
       id: 'student-3',
-      firstName: 'Noah',
-      lastName: 'Brown',
+      firstName: 'Rashid',
+      lastName: 'Al Nuaimi',
       dateOfBirth: new Date('2018-11-08'),
       classId: sunshineRoom.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Intellectual Disability']),
@@ -106,15 +108,16 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Needs compression vest', 'Prefers quiet spaces', 'Enjoys water play']),
       supportStrategies: JSON.stringify(['Makaton signs', 'Extra processing time', 'Concrete examples', 'Consistent routines']),
       triggers: JSON.stringify(['New people entering the room', 'Being rushed', 'Abstract or unclear instructions']),
-      calmingStrategies: JSON.stringify(['Deep pressure from compression vest', 'Water play', 'Hugging soft toy', 'Quiet corner'])
+      calmingStrategies: JSON.stringify(['Deep pressure from compression vest', 'Water play', 'Hugging soft toy', 'Quiet corner']),
+      teacherNotes: 'Rashid thrives with classroom helper jobs like feeding the fish. He works well with Ahmed during structured pair activities.'
     }
   })
 
   const sophia = await prisma.student.create({
     data: {
       id: 'student-4',
-      firstName: 'Sophia',
-      lastName: 'Davis',
+      firstName: 'Mariam',
+      lastName: 'Al Shamsi',
       dateOfBirth: new Date('2019-01-30'),
       classId: sunshineRoom.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder']),
@@ -125,19 +128,20 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Sensitive to smells', 'Prefers certain clothing textures', 'Dislikes messy activities']),
       supportStrategies: JSON.stringify(['Social scripts', 'Structured social activities', 'Clear literal language', 'Special interest integration']),
       triggers: JSON.stringify(['Strong smells', 'Messy activities', 'Unexpected social demands']),
-      calmingStrategies: JSON.stringify(['Reading books', 'Looking at space pictures', 'Counting', 'Quiet independent time'])
+      calmingStrategies: JSON.stringify(['Reading books', 'Looking at space pictures', 'Counting', 'Quiet independent time']),
+      teacherNotes: 'Mariam reads well above her level and loves space facts. Incorporating astronomy into maths problems works very well for engagement.'
     }
   })
 
   // ============================================
-  // SEED STUDENTS - Rainbow Class
+  // SEED STUDENTS - Class 2A (Grade 2, Ages 7-8)
   // ============================================
   const liam = await prisma.student.create({
     data: {
       id: 'student-5',
-      firstName: 'Liam',
-      lastName: 'Wilson',
-      dateOfBirth: new Date('2016-05-12'),
+      firstName: 'Khalid',
+      lastName: 'Al Mazrouei',
+      dateOfBirth: new Date('2018-05-12'),
       classId: rainbowClass.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Anxiety Disorder']),
       strengths: JSON.stringify(['Excellent at maths', 'Logical thinking', 'Great attention to detail', 'Kind to younger children']),
@@ -147,16 +151,17 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Noise-canceling headphones helpful', 'Prefers predictable environments']),
       supportStrategies: JSON.stringify(['Clear expectations', 'Advance notice of changes', 'Growth mindset coaching', 'Step-by-step instructions']),
       triggers: JSON.stringify(['Making mistakes', 'Unexpected changes', 'Vague or unclear instructions']),
-      calmingStrategies: JSON.stringify(['Noise-canceling headphones', 'Deep breathing', 'Coding on tablet', 'Counting exercises'])
+      calmingStrategies: JSON.stringify(['Noise-canceling headphones', 'Deep breathing', 'Coding on tablet', 'Counting exercises']),
+      teacherNotes: 'Khalid has exceptional coding skills and helps other students with Scratch. Continue using the "mistakes help us learn" visual prompt for anxiety.'
     }
   })
 
   const ava = await prisma.student.create({
     data: {
       id: 'student-6',
-      firstName: 'Ava',
-      lastName: 'Martinez',
-      dateOfBirth: new Date('2015-09-03'),
+      firstName: 'Noura',
+      lastName: 'Al Ketbi',
+      dateOfBirth: new Date('2018-09-03'),
       classId: rainbowClass.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Pathological Demand Avoidance profile']),
       strengths: JSON.stringify(['Very creative', 'Excellent imagination', 'Empathetic', 'Great problem solver when engaged']),
@@ -166,16 +171,17 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Needs choice in seating', 'Benefits from fidget items']),
       supportStrategies: JSON.stringify(['Indirect language', 'Offering choices', 'Role play requests', 'Collaborative approach']),
       triggers: JSON.stringify(['Direct demands', 'Feeling out of control', 'Rigid rules without explanation']),
-      calmingStrategies: JSON.stringify(['Role playing', 'Creative activities', 'Talking to trusted adult', 'Having choices'])
+      calmingStrategies: JSON.stringify(['Role playing', 'Creative activities', 'Talking to trusted adult', 'Having choices']),
+      teacherNotes: 'Phrasing requests as "I wonder if..." works much better than direct instructions. Noura started a lunch drama club which has been great for social skills.'
     }
   })
 
   const james = await prisma.student.create({
     data: {
       id: 'student-7',
-      firstName: 'James',
-      lastName: 'Anderson',
-      dateOfBirth: new Date('2016-02-28'),
+      firstName: 'Sultan',
+      lastName: 'Al Dhaheri',
+      dateOfBirth: new Date('2018-02-28'),
       classId: rainbowClass.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Dyspraxia']),
       strengths: JSON.stringify(['Excellent verbal reasoning', 'Great memory', 'Enthusiastic learner', 'Good sense of humor']),
@@ -185,19 +191,20 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Benefits from movement breaks', 'Prefers typing to writing']),
       supportStrategies: JSON.stringify(['Assistive technology', 'Typing instead of writing', 'Extra time for motor tasks', 'Verbal responses allowed']),
       triggers: JSON.stringify(['Being asked to write by hand', 'Timed motor tasks', 'PE activities without support']),
-      calmingStrategies: JSON.stringify(['Talking about dinosaurs', 'Listening to podcasts', 'Verbal problem-solving', 'Taking breaks'])
+      calmingStrategies: JSON.stringify(['Talking about dinosaurs', 'Listening to podcasts', 'Verbal problem-solving', 'Taking breaks']),
+      teacherNotes: 'Sultan uses the classroom laptop for written work which has greatly improved his output. His dinosaur knowledge is impressive and he enjoys sharing it.'
     }
   })
 
   // ============================================
-  // SEED STUDENTS - Discovery Group
+  // SEED STUDENTS - Class 3A (Grade 3, Ages 8-9)
   // ============================================
   const mia = await prisma.student.create({
     data: {
       id: 'student-8',
-      firstName: 'Mia',
-      lastName: 'Taylor',
-      dateOfBirth: new Date('2013-04-17'),
+      firstName: 'Ayesha',
+      lastName: 'Al Falasi',
+      dateOfBirth: new Date('2017-04-17'),
       classId: discoveryGroup.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Generalized Anxiety Disorder']),
       strengths: JSON.stringify(['Excellent writer', 'Very artistic', 'Deep thinker', 'Loyal friend once comfortable']),
@@ -207,16 +214,17 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Quiet workspace', 'Advance preparation for noisy activities']),
       supportStrategies: JSON.stringify(['Written communication options', '1:1 check-ins', 'Small group work', 'Advance notice of speaking tasks']),
       triggers: JSON.stringify(['Being put on the spot', 'Large group presentations', 'Unfamiliar people']),
-      calmingStrategies: JSON.stringify(['Drawing', 'Writing', 'Quiet time alone', 'Talking to trusted person'])
+      calmingStrategies: JSON.stringify(['Drawing', 'Writing', 'Quiet time alone', 'Talking to trusted person']),
+      teacherNotes: 'Ayesha has a small circle of friends who share her anime interest. For presentations, she presents to the teacher first, then gradually to larger groups.'
     }
   })
 
   const ethan = await prisma.student.create({
     data: {
       id: 'student-9',
-      firstName: 'Ethan',
-      lastName: 'Jackson',
-      dateOfBirth: new Date('2012-08-09'),
+      firstName: 'Mohammed',
+      lastName: 'Al Suwaidi',
+      dateOfBirth: new Date('2017-08-09'),
       classId: discoveryGroup.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'ADHD']),
       strengths: JSON.stringify(['Enthusiastic', 'Great technical skills', 'Persistent', 'Helpful when given responsibilities']),
@@ -226,16 +234,17 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Movement breaks essential', 'Benefits from standing desk option']),
       supportStrategies: JSON.stringify(['Leadership roles', 'Movement breaks', 'Social cue cards', 'Turn-taking visuals']),
       triggers: JSON.stringify(["Being ignored", "Technology being taken away", "Being told his interests aren't important"]),
-      calmingStrategies: JSON.stringify(['Movement break', 'Talking about video games', 'Using technology', 'Having a job to do'])
+      calmingStrategies: JSON.stringify(['Movement break', 'Talking about video games', 'Using technology', 'Having a job to do']),
+      teacherNotes: 'Mohammed is the class "Tech Helper" which has boosted his self-esteem. Visual turn-taking cards during discussions help him let others speak.'
     }
   })
 
   const isabella = await prisma.student.create({
     data: {
       id: 'student-10',
-      firstName: 'Isabella',
-      lastName: 'White',
-      dateOfBirth: new Date('2013-12-01'),
+      firstName: 'Latifa',
+      lastName: 'Al Romaithi',
+      dateOfBirth: new Date('2017-12-01'),
       classId: discoveryGroup.id,
       diagnoses: JSON.stringify(['Autism Spectrum Disorder', 'Sensory Processing Disorder']),
       strengths: JSON.stringify(['Musical talent', 'Excellent pattern recognition', 'Very caring', 'Great with animals']),
@@ -245,7 +254,8 @@ async function main() {
       sensoryNeeds: JSON.stringify(['Ear defenders available', 'Sensory breaks', 'Soft clothing options']),
       supportStrategies: JSON.stringify(['Sensory breaks', 'Quiet space access', 'Advance warning of loud activities', 'Ear defenders']),
       triggers: JSON.stringify(['Loud sudden noises', 'Crowded assemblies', 'Unexpected touch', 'Scratchy clothing']),
-      calmingStrategies: JSON.stringify(['Playing music', 'Ear defenders', 'Quiet room', 'Soft blanket'])
+      calmingStrategies: JSON.stringify(['Playing music', 'Ear defenders', 'Quiet room', 'Soft blanket']),
+      teacherNotes: 'Latifa visits the sensory room for 10 minutes before assemblies and lunch. She performed a piano piece at assembly last month - a huge achievement!'
     }
   })
 

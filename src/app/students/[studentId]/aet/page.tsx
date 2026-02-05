@@ -42,6 +42,7 @@ interface Student {
   supportStrategies: string[];
   triggers: string[];
   calmingStrategies: string[];
+  teacherNotes: string;
 }
 
 // Progress data structure for subcategories
@@ -236,6 +237,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
             supportStrategies: student.supportStrategies,
             triggers: student.triggers,
             calmingStrategies: student.calmingStrategies,
+            teacherNotes: student.teacherNotes,
           },
           component: {
             name: subcategory.name,

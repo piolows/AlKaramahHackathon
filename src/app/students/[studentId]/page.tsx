@@ -37,6 +37,7 @@ interface Student {
   supportStrategies: string[];
   triggers: string[];
   calmingStrategies: string[];
+  teacherNotes: string;
 }
 
 // Editable List Component
@@ -423,6 +424,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
   const [supportStrategies, setSupportStrategies] = useState<string[]>([]);
   const [triggers, setTriggers] = useState<string[]>([]);
   const [calmingStrategies, setCalmingStrategies] = useState<string[]>([]);
+  const [teacherNotes, setTeacherNotes] = useState('');
 
   useEffect(() => {
     async function fetchStudent() {
@@ -440,6 +442,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
           setSupportStrategies(data.supportStrategies || []);
           setTriggers(data.triggers || []);
           setCalmingStrategies(data.calmingStrategies || []);
+          setTeacherNotes(data.teacherNotes || '');
         }
       } catch (error) {
         console.error('Failed to fetch student:', error);
@@ -471,7 +474,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
           communicationStyle,
           supportStrategies,
           triggers,
-          calmingStrategies
+          calmingStrategies,
+          teacherNotes
         })
       });
       if (!res.ok) throw new Error('Failed to save');
@@ -693,6 +697,17 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               bulletColor="bg-indigo-400"
               title="Support Strategies"
               placeholder="Add a support strategy..."
+            />
+
+            {/* Teacher Notes */}
+            <EditableText
+              value={teacherNotes}
+              onUpdate={(value) => { setTeacherNotes(value); setTimeout(saveChanges, 100); }}
+              icon={Pencil}
+              iconColor="text-amber-500"
+              title="Teacher Notes"
+              placeholder="Add any additional notes about this student..."
+              multiline={true}
             />
 
             {/* AET Link Card */}

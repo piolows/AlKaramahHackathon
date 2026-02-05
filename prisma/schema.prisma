@@ -45,6 +45,7 @@ model Student {
   supportStrategies  String            @default("[]")  // JSON array of strings
   triggers           String            @default("[]")  // JSON array of strings
   calmingStrategies  String            @default("[]")  // JSON array of strings
+  teacherNotes       String            @default("")    // Free-form teacher notes
   
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

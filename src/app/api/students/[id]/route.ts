@@ -28,6 +28,7 @@ function transformStudent(student: {
   supportStrategies: string
   triggers: string
   calmingStrategies: string
+  teacherNotes: string
   createdAt: Date
   updatedAt: Date
 }) {
@@ -47,6 +48,7 @@ function transformStudent(student: {
     supportStrategies: parseJsonArray(student.supportStrategies),
     triggers: parseJsonArray(student.triggers),
     calmingStrategies: parseJsonArray(student.calmingStrategies),
+    teacherNotes: student.teacherNotes || '',
     createdAt: student.createdAt,
     updatedAt: student.updatedAt
   }
@@ -110,7 +112,8 @@ export async function PUT(
       communicationStyle,
       supportStrategies,
       triggers,
-      calmingStrategies
+      calmingStrategies,
+      teacherNotes
     } = body
 
     if (!firstName || !lastName || !dateOfBirth || !classId) {
@@ -147,7 +150,8 @@ export async function PUT(
         communicationStyle: communicationStyle || '',
         supportStrategies: JSON.stringify(supportStrategies || []),
         triggers: JSON.stringify(triggers || []),
-        calmingStrategies: JSON.stringify(calmingStrategies || [])
+        calmingStrategies: JSON.stringify(calmingStrategies || []),
+        teacherNotes: teacherNotes || ''
       },
       include: {
         class: {

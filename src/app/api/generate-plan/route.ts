@@ -23,6 +23,7 @@ interface GeneratePlanRequest {
     supportStrategies: string[];
     triggers: string[];
     calmingStrategies: string[];
+    teacherNotes?: string;
   };
   component: {
     name: string;
@@ -176,6 +177,8 @@ ${student.triggers.map(t => `- ${t}`).join('\n')}
 
 **Calming Strategies:**
 ${student.calmingStrategies.map(c => `- ${c}`).join('\n')}
+
+${student.teacherNotes ? `**Teacher Notes:**\n${student.teacherNotes}` : ''}
 
 ---
 
