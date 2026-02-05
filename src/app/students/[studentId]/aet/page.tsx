@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { 
   GraduationCap, 
   ChevronRight,
@@ -544,10 +545,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                       </div>
                     ) : hasPlan ? (
                       <div className="p-4">
-                        <div className="prose prose-sm max-w-none mb-4">
-                          <div className="whitespace-pre-wrap text-gray-700 text-sm">
-                            {hasPlan}
-                          </div>
+                        <div className="prose prose-sm max-w-none mb-4 text-gray-700">
+                          <ReactMarkdown>{hasPlan}</ReactMarkdown>
                         </div>
                         <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
                           <button
@@ -918,10 +917,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                           </div>
                                         ) : hasPlan ? (
                                           <div>
-                                            <div className="bg-white rounded-lg p-3 prose prose-sm max-w-none">
-                                              <div className="whitespace-pre-wrap text-gray-700 text-xs">
-                                                {hasPlan}
-                                              </div>
+                                            <div className="bg-white rounded-lg p-3 prose prose-xs max-w-none text-gray-700">
+                                              <ReactMarkdown>{hasPlan}</ReactMarkdown>
                                             </div>
                                             <div className="flex flex-wrap justify-end gap-2 mt-2">
                                               <button

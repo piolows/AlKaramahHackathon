@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { 
   GraduationCap, 
   ChevronRight,
@@ -753,8 +754,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                   </div>
                                 ) : hasPlan ? (
                                   <div>
-                                    <div className="whitespace-pre-wrap text-gray-700 text-sm mb-4 max-h-48 overflow-y-auto">
-                                      {hasPlan}
+                                    <div className="prose prose-sm max-w-none text-gray-700 mb-4 max-h-48 overflow-y-auto">
+                                      <ReactMarkdown>{hasPlan}</ReactMarkdown>
                                     </div>
                                     <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
                                       <button
