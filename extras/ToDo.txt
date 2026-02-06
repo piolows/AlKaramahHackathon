@@ -1,5 +1,6 @@
 - Components / Layout
 - Fix AI output not completing (check)
+- Fix regenerate to use last provided optional instructions
 - Dark mode
 - Color scheme, theme, style / UI UX flow / Unfuglination
 	- Create CSS variables for main colors of the site and text

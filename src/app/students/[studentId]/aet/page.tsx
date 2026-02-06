@@ -222,6 +222,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
             firstName: student.firstName,
             lastName: student.lastName,
             dateOfBirth: student.dateOfBirth,
+            className: student.className,
             diagnoses: student.diagnoses,
             strengths: student.strengths,
             challenges: student.challenges,

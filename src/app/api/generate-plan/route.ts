@@ -14,6 +14,7 @@ interface GeneratePlanRequest {
     firstName: string;
     lastName: string;
     dateOfBirth: string;
+    className?: string;
     diagnoses: string[];
     strengths: string[];
     challenges: string[];
@@ -151,6 +152,7 @@ function buildPrompt(
 
 **Name:** ${student.firstName} ${student.lastName}
 **Age:** ${age} years old
+${student.className ? `**Class:** ${student.className}` : ''}
 
 **Diagnoses:**
 ${student.diagnoses.map(d => `- ${d}`).join('\n')}
@@ -201,13 +203,16 @@ ${customInstructions}
 ` : ''}## YOUR TASK
 
 Create a SHORT, practical teaching plan (1-2 weeks focus). Keep it concise and actionable.
+This is for a school for autistic children, and it follows a British curriculum.
+Keep in mind the student's age and grade.
+Unless specified in any above instructions, do not incorporate any devices, students do not use any in class.
 
 ## REQUIRED FORMAT (keep it brief!)
 
 **Goal:** [One clear, measurable sentence]
 
 **Activities (3-4 bullet points max):**
-- [Activity using their interests: ${student.interests[0] || 'preferred activities'}]
+- [Activity using their interests]
 - [Activity using their strength]
 - [Practice opportunity]
 
