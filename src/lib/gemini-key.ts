@@ -4,5 +4,5 @@ export default function getGeminiApiKey() {
 	console.log({apiKeys, index})
 	if (index >= apiKeys.length)
 		index = 0;
-	return apiKeys[4];
+	return apiKeys[index++];
 }
