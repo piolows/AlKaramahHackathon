@@ -13,12 +13,10 @@
 - Further test prompting
 	- Maybe change LLM
 - Admin page: extra tab for adding diagnoses options
-- Feedback and/or prompt when marking goal completed
 - Goals accomplished per day display
 - Refine prompt
 	- Take into account grade and British curriculum
 	- Never incorporate electronic devices for students
-- Input text color site-wide
 
 
 - RAG / Flashcards
