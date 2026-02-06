@@ -1,3 +1,4 @@
+import getGeminiApiKey from '@/lib/gemini-key';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Google Gemini API integration
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     const body: GeneratePlanRequest = await request.json();
     const { student, component, customInstructions } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey();
     
     if (!apiKey) {
       return NextResponse.json(

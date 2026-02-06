@@ -1,3 +1,4 @@
+import getGeminiApiKey from '@/lib/gemini-key';
 import { NextRequest, NextResponse } from 'next/server';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body: ConsultRequest = await request.json();
     const { studentName, diagnoses, question } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey();
 
     if (!apiKey) {
       return NextResponse.json(
