@@ -15,8 +15,12 @@ import {
   X,
   Target,
   Plus,
-  Trash2
+  Trash2,
+  Loader2,
+  Wand2,
+  Send
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { Breadcrumb, LoadingSpinner } from '@/components';
 
 interface Student {
@@ -187,7 +191,8 @@ function EditableTags({
   tagBg,
   tagText,
   title,
-  placeholder 
+  placeholder,
+  bare = false
 }: { 
   items: string[], 
   onUpdate: (items: string[]) => void,
@@ -196,7 +201,8 @@ function EditableTags({
   tagBg: string,
   tagText: string,
   title: string,
-  placeholder: string
+  placeholder: string,
+  bare?: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedItems, setEditedItems] = useState(items);
@@ -224,8 +230,8 @@ function EditableTags({
     setEditedItems(editedItems.filter((_, i) => i !== index));
   };
 
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <Icon className={`h-5 w-5 ${iconColor} mr-2`} />
@@ -310,6 +316,14 @@ function EditableTags({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (bare) return content;
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      {content}
     </div>
   );
 }
@@ -423,6 +437,44 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
   const [triggers, setTriggers] = useState<string[]>([]);
   const [calmingStrategies, setCalmingStrategies] = useState<string[]>([]);
   const [teacherNotes, setTeacherNotes] = useState('');
+
+  // AI Consult state
+  const [showConsult, setShowConsult] = useState(false);
+  const [consultQuestion, setConsultQuestion] = useState('');
+  const [consultAnswer, setConsultAnswer] = useState('');
+  const [consultLoading, setConsultLoading] = useState(false);
+  const [consultError, setConsultError] = useState<string | null>(null);
+
+  const handleConsult = async () => {
+    if (!consultQuestion.trim() || !student) return;
+    setConsultLoading(true);
+    setConsultError(null);
+    setConsultAnswer('');
+
+    try {
+      const res = await fetch('/api/consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentName: `${student.firstName} ${student.lastName}`,
+          diagnoses,
+          question: consultQuestion,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to get response');
+      }
+
+      setConsultAnswer(data.answer);
+    } catch (err: any) {
+      setConsultError(err.message || 'Something went wrong');
+    } finally {
+      setConsultLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchStudent() {
@@ -557,17 +609,88 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Main Info */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Diagnoses */}
-            <EditableTags
-              items={diagnoses}
-              onUpdate={(items) => { setDiagnoses(items); setTimeout(saveChanges, 100); }}
-              icon={Brain}
-              iconColor="text-purple-600"
-              tagBg="bg-purple-50"
-              tagText="text-purple-700"
-              title="Diagnoses"
-              placeholder="Add a diagnosis..."
-            />
+            {/* Diagnoses + AI Consult (combined card) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6">
+                <EditableTags
+                  items={diagnoses}
+                  onUpdate={(items) => { setDiagnoses(items); setTimeout(saveChanges, 100); }}
+                  icon={Brain}
+                  iconColor="text-purple-600"
+                  tagBg="bg-purple-50"
+                  tagText="text-purple-700"
+                  title="Diagnoses"
+                  placeholder="Add a diagnosis..."
+                  bare
+                />
+              </div>
+
+              {diagnoses.length > 0 && (
+                <div className="border-t border-gray-100">
+                  {!showConsult ? (
+                    <button
+                      onClick={() => setShowConsult(true)}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-ai-50 text-ai-600 hover:bg-ai-100 transition-colors font-medium text-sm"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Consult AI about Diagnoses
+                    </button>
+                  ) : (
+                    <div className="p-6 bg-gray-50/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Wand2 className="h-5 w-5 text-ai-500" />
+                          <h3 className="text-sm font-semibold text-gray-900">Ask about Diagnoses</h3>
+                        </div>
+                        <button
+                          onClick={() => { setShowConsult(false); setConsultAnswer(''); setConsultError(null); setConsultQuestion(''); }}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={consultQuestion}
+                          onChange={(e) => setConsultQuestion(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && !consultLoading && handleConsult()}
+                          placeholder="e.g. How do these diagnoses affect eating habits?"
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-ai-500 focus:border-transparent bg-white"
+                          disabled={consultLoading}
+                        />
+                        <button
+                          onClick={handleConsult}
+                          disabled={consultLoading || !consultQuestion.trim()}
+                          className="inline-flex items-center px-4 py-2 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {consultLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+
+                      {consultError && (
+                        <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm mb-3">
+                          {consultError}
+                        </div>
+                      )}
+
+                      {consultAnswer && (
+                        <div className="p-4 bg-ai-50 rounded-lg border border-ai-100">
+                          <div className="prose prose-sm max-w-none text-gray-700">
+                            <ReactMarkdown>{consultAnswer}</ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Strengths */}
             <EditableList
