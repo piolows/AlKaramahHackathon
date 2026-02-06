@@ -20,7 +20,7 @@ export function Card({ children, className = '', hover = false, padding = 'md' }
     <div
       className={`
         bg-white rounded-2xl shadow-sm border border-gray-100
-        ${hover ? 'hover:shadow-md hover:border-indigo-200 transition-all' : ''}
+        ${hover ? 'hover:shadow-md hover:border-primary-200 transition-all' : ''}
         ${paddingClasses[padding]}
         ${className}
       `}
@@ -40,7 +40,7 @@ export function LinkCard({ href, children, className = '', padding = 'md' }: Lin
       href={href}
       className={`
         block bg-white rounded-2xl shadow-sm border border-gray-100
-        hover:shadow-md hover:border-indigo-200 transition-all group
+        hover:shadow-md hover:border-primary-200 transition-all group
         ${paddingClasses[padding]}
         ${className}
       `}
@@ -61,8 +61,8 @@ interface CardHeaderProps {
 
 export function CardHeader({
   icon: Icon,
-  iconBgColor = 'bg-indigo-100',
-  iconColor = 'text-indigo-600',
+  iconBgColor = 'bg-primary-100',
+  iconColor = 'text-primary-600',
   title,
   showArrow = false,
   children,
@@ -75,14 +75,14 @@ export function CardHeader({
             <Icon className={`h-5 w-5 ${iconColor}`} />
           </div>
         )}
-        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+        <h3 className="text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
           {title}
         </h3>
       </div>
       <div className="flex items-center gap-2">
         {children}
         {showArrow && (
-          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
         )}
       </div>
     </div>
@@ -111,7 +111,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
         action.href ? (
           <Link
             href={action.href}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
           >
             {action.icon && <action.icon className="h-4 w-4" />}
             {action.label}
@@ -119,7 +119,7 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
         ) : (
           <button
             onClick={action.onClick}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
           >
             {action.icon && <action.icon className="h-4 w-4" />}
             {action.label}

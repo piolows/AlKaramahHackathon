@@ -140,7 +140,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
-          <Link href="/classes" className="text-indigo-600 hover:underline">
+          <Link href="/classes" className="text-primary-600 hover:underline">
             Return to Classes
           </Link>
         </div>
@@ -356,9 +356,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // Add a brief highlight effect
-        element.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-2');
+        element.classList.add('ring-2', 'ring-primary-500', 'ring-offset-2');
         setTimeout(() => {
-          element.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-2');
+          element.classList.remove('ring-2', 'ring-primary-500', 'ring-offset-2');
         }, 2000);
       }
     }, 100);
@@ -379,7 +379,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         {/* Back Button */}
         <Link 
           href={`/students/${student.id}`}
-          className="inline-flex items-center text-gray-600 hover:text-indigo-600 mb-6 transition-colors"
+          className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Profile
@@ -390,7 +390,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           <div className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xl font-semibold">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center text-white text-xl font-semibold">
                   {student.firstName[0]}{student.lastName[0]}
                 </div>
                 <div className="ml-4">
@@ -410,7 +410,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                   <div className="text-xs text-gray-500">Completed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-amber-600">{inProgressSubcategories}</div>
+                  <div className="text-2xl font-bold text-yellow-500">{inProgressSubcategories}</div>
                   <div className="text-xs text-gray-500">In Progress</div>
                 </div>
                 <div className="text-center">
@@ -422,7 +422,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                 {currentGoal ? (
                   <button
                     onClick={scrollToCurrentGoal}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                   >
                     <Target className="h-4 w-4" />
                     <span>Jump to Current Goal</span>
@@ -553,7 +553,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                     id={`subcategory-${subcategory.id}`}
                                     className={`rounded-lg border transition-all ${
                                       isCurrentGoal 
-                                        ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200' 
+                                        ? 'border-primary-300 bg-primary-50/50 ring-1 ring-primary-200' 
                                         : isCompleted 
                                           ? 'border-green-200 bg-green-50/50' 
                                           : 'border-gray-100 bg-gray-50/50'
@@ -584,7 +584,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 {subcategory.name}
                                               </h4>
                                               {isCurrentGoal && (
-                                                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 font-medium">
                                                   Current Goal
                                                 </span>
                                               )}
@@ -656,7 +656,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         
                                         {generatingPlan === subcategory.id ? (
                                           <div className="text-center py-6">
-                                            <Loader2 className="w-6 h-6 text-indigo-600 animate-spin mx-auto mb-3" />
+                                            <Loader2 className="w-6 h-6 text-primary-500 animate-spin mx-auto mb-3" />
                                             <p className="text-sm text-gray-600 font-medium">Generating personalized plan...</p>
                                             <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
                                           </div>
@@ -665,7 +665,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <textarea
                                               value={editedPlan}
                                               onChange={(e) => setEditedPlan(e.target.value)}
-                                              className="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono text-xs bg-white"
+                                              className="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-xs bg-white"
                                               placeholder="Write your personalized teaching plan..."
                                             />
                                             <div className="flex justify-end gap-2 mt-2">
@@ -678,7 +678,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               </button>
                                               <button
                                                 onClick={() => savePlan(subcategory.id)}
-                                                className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700"
+                                                className="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg text-xs font-medium hover:bg-primary-600"
                                               >
                                                 <Save className="h-3 w-3 mr-1" />
                                                 Save
@@ -693,7 +693,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div className="flex flex-wrap justify-end gap-2 mt-2">
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
-                                                className="inline-flex items-center px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-medium hover:bg-indigo-100 border border-indigo-200"
+                                                className="inline-flex items-center px-2 py-1 bg-ai-50 text-ai-600 rounded text-xs font-medium hover:bg-ai-100 border border-ai-200"
                                               >
                                                 <RefreshCw className="h-3 w-3 mr-1" />
                                                 Regenerate
@@ -741,7 +741,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                   [subcategory.id]: e.target.value
                                                 }))}
                                                 placeholder={`Add specific instructions for ${student.firstName}'s plan...`}
-                                                className="w-full h-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-xs bg-white"
+                                                className="w-full h-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-xs bg-white"
                                               />
                                             </div>
                                             
@@ -754,7 +754,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               </button>
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
-                                                className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700"
+                                                className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-xs font-medium hover:bg-ai-600"
                                               >
                                                 <Wand2 className="h-3 w-3 mr-1" />
                                                 Generate
@@ -773,14 +773,14 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div className="flex flex-wrap justify-center gap-2">
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
-                                                className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700"
+                                                className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-xs font-medium hover:bg-ai-600"
                                               >
                                                 <Wand2 className="h-3 w-3 mr-1" />
                                                 Generate with AI
                                               </button>
                                               <button
                                                 onClick={() => setShowInstructions(subcategory.id)}
-                                                className="inline-flex items-center px-3 py-1.5 bg-white text-indigo-600 rounded-lg text-xs font-medium hover:bg-indigo-50 border border-indigo-200"
+                                                className="inline-flex items-center px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium hover:bg-primary-50 border border-primary-200"
                                               >
                                                 <MessageCircle className="h-3 w-3 mr-1" />
                                                 Add Instructions

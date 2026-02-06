@@ -30,7 +30,7 @@ export default function Header() {
         <div className="flex justify-between h-16">
           {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
               <Train className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-900">TrainTrack</span>
@@ -44,8 +44,8 @@ export default function Header() {
                 href={link.href}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.href)
-                    ? 'text-indigo-600 bg-indigo-50'
-                    : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50'
+                    ? 'text-primary-700 bg-primary-50'
+                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
                 }`}
               >
                 {link.icon}

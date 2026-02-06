@@ -98,7 +98,7 @@ function EditableList({
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
             <Pencil className="h-4 w-4 mr-1" />
             Edit
@@ -144,7 +144,7 @@ function EditableList({
                 type="text"
                 value={item}
                 onChange={(e) => updateItem(index, e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
               />
               <button
                 onClick={() => removeItem(index)}
@@ -162,12 +162,12 @@ function EditableList({
               onChange={(e) => setNewItem(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addItem()}
               placeholder={placeholder}
-              className="flex-1 px-3 py-2 border border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+              className="flex-1 px-3 py-2 border border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             />
             <button
               onClick={addItem}
               disabled={!newItem.trim()}
-              className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add
             </button>
@@ -234,7 +234,7 @@ function EditableTags({
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
             <Pencil className="h-4 w-4 mr-1" />
             Edit
@@ -298,12 +298,12 @@ function EditableTags({
               onChange={(e) => setNewItem(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addItem()}
               placeholder={placeholder}
-              className="flex-1 px-3 py-2 border border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+              className="flex-1 px-3 py-2 border border-dashed border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             />
             <button
               onClick={addItem}
               disabled={!newItem.trim()}
-              className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add
             </button>
@@ -355,7 +355,7 @@ function EditableText({
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-700"
+            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
             <Pencil className="h-4 w-4 mr-1" />
             Edit
@@ -390,7 +390,7 @@ function EditableText({
             value={editedValue}
             onChange={(e) => setEditedValue(e.target.value)}
             placeholder={placeholder}
-            className="w-full h-32 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+            className="w-full h-32 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
           />
         ) : (
           <input
@@ -398,7 +398,7 @@ function EditableText({
             value={editedValue}
             onChange={(e) => setEditedValue(e.target.value)}
             placeholder={placeholder}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
         )
       )}
@@ -494,7 +494,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
-          <Link href="/classes" className="text-indigo-600 hover:underline">
+          <Link href="/classes" className="text-primary-600 hover:underline">
             Return to Classes
           </Link>
         </div>
@@ -516,7 +516,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
         {/* Back Button */}
         <Link 
           href={`/classes/${student.classId}`}
-          className="inline-flex items-center text-gray-600 hover:text-indigo-600 mb-6 transition-colors"
+          className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to {student.className}
@@ -526,7 +526,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-8">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between">
             <div className="flex items-center mb-6 md:mb-0">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-2xl font-semibold">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center text-white text-2xl font-semibold">
                 {student.firstName[0]}{student.lastName[0]}
               </div>
               <div className="ml-6">
@@ -545,7 +545,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
             </div>
             <Link
               href={`/students/${student.id}/aet`}
-              className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
             >
               <Target className="h-5 w-5 mr-2" />
               View AET Progress
@@ -574,8 +574,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               items={strengths}
               onUpdate={(items) => { setStrengths(items); setTimeout(saveChanges, 100); }}
               icon={Sparkles}
-              iconColor="text-amber-500"
-              bulletColor="bg-amber-400"
+              iconColor="text-primary-500"
+              bulletColor="bg-primary-400"
               title="Strengths"
               placeholder="Add a strength..."
             />
@@ -654,8 +654,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               items={supportStrategies}
               onUpdate={(items) => { setSupportStrategies(items); setTimeout(saveChanges, 100); }}
               icon={Target}
-              iconColor="text-indigo-500"
-              bulletColor="bg-indigo-400"
+              iconColor="text-primary-500"
+              bulletColor="bg-primary-400"
               title="Support Strategies"
               placeholder="Add a support strategy..."
             />
@@ -665,16 +665,16 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               value={teacherNotes}
               onUpdate={(value) => { setTeacherNotes(value); setTimeout(saveChanges, 100); }}
               icon={Pencil}
-              iconColor="text-amber-500"
+              iconColor="text-primary-500"
               title="Teacher Notes"
               placeholder="Add any additional notes about this student..."
               multiline={true}
             />
 
             {/* AET Link Card */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl p-6 text-white">
               <h2 className="text-lg font-semibold mb-4">AET Progress</h2>
-              <p className="text-indigo-100 text-sm mb-4">
+              <p className="text-primary-100 text-sm mb-4">
                 Track this student's progress across all AET framework areas with AI-generated personalized teaching plans.
               </p>
               <Link
@@ -689,7 +689,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
 
         {/* Saving Indicator */}
         {saving && (
-          <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
+          <div className="fixed bottom-4 right-4 bg-primary-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
             Saving...
           </div>

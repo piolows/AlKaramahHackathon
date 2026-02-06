@@ -309,7 +309,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('classes')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'classes'
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-primary-500 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -320,7 +320,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('students')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'students'
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-primary-500 text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -336,7 +336,7 @@ export default function AdminPage() {
               <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
               <button
                 onClick={() => openClassForm()}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Add Class
@@ -356,12 +356,12 @@ export default function AdminPage() {
                         {cls.description || 'No description'}
                         {cls.ageRange && ` • ${cls.ageRange}`}
                       </p>
-                      <p className="text-sm text-blue-600">{cls.studentCount} student{cls.studentCount !== 1 ? 's' : ''}</p>
+                      <p className="text-sm text-primary-600">{cls.studentCount} student{cls.studentCount !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openClassForm(cls)}
-                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                         title="Edit class"
                       >
                         <Pencil className="h-4 w-4" />
@@ -388,7 +388,7 @@ export default function AdminPage() {
               <h2 className="text-lg font-semibold text-gray-900">Students</h2>
               <button
                 onClick={() => openStudentForm()}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 disabled={classes.length === 0}
               >
                 <UserPlus className="h-4 w-4" />
@@ -432,7 +432,7 @@ export default function AdminPage() {
                         </Link>
                         <button
                           onClick={() => openStudentForm(student)}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Edit student"
                         >
                           <Pencil className="h-4 w-4" />
@@ -478,7 +478,7 @@ export default function AdminPage() {
                   type="text"
                   value={classForm.name}
                   onChange={e => setClassForm({ ...classForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Sunshine Room"
                 />
               </div>
@@ -489,7 +489,7 @@ export default function AdminPage() {
                 <textarea
                   value={classForm.description}
                   onChange={e => setClassForm({ ...classForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   rows={3}
                   placeholder="Brief description of the class..."
                 />
@@ -502,7 +502,7 @@ export default function AdminPage() {
                   type="text"
                   value={classForm.ageRange}
                   onChange={e => setClassForm({ ...classForm, ageRange: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Key Stage 1 (Ages 5-7)"
                 />
               </div>
@@ -516,7 +516,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={saveClass}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Save className="h-4 w-4" />
                 {editingClass ? 'Save Changes' : 'Create Class'}
@@ -551,7 +551,7 @@ export default function AdminPage() {
                     type="text"
                     value={studentForm.firstName}
                     onChange={e => setStudentForm({ ...studentForm, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
@@ -562,7 +562,7 @@ export default function AdminPage() {
                     type="text"
                     value={studentForm.lastName}
                     onChange={e => setStudentForm({ ...studentForm, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               </div>
@@ -575,7 +575,7 @@ export default function AdminPage() {
                     type="date"
                     value={studentForm.dateOfBirth}
                     onChange={e => setStudentForm({ ...studentForm, dateOfBirth: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
@@ -585,7 +585,7 @@ export default function AdminPage() {
                   <select
                     value={studentForm.classId}
                     onChange={e => setStudentForm({ ...studentForm, classId: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">Select a class...</option>
                     {classes.map(cls => (
@@ -610,7 +610,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.diagnoses}
                   onChange={e => setStudentForm({ ...studentForm, diagnoses: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Autism Spectrum Disorder, ADHD"
                 />
               </div>
@@ -622,7 +622,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.strengths}
                   onChange={e => setStudentForm({ ...studentForm, strengths: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Visual learner, Good memory"
                 />
               </div>
@@ -634,7 +634,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.challenges}
                   onChange={e => setStudentForm({ ...studentForm, challenges: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Verbal communication, Transitions"
                 />
               </div>
@@ -646,7 +646,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.interests}
                   onChange={e => setStudentForm({ ...studentForm, interests: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Trains, Puzzles, Music"
                 />
               </div>
@@ -657,7 +657,7 @@ export default function AdminPage() {
                 <textarea
                   value={studentForm.communicationStyle}
                   onChange={e => setStudentForm({ ...studentForm, communicationStyle: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   rows={2}
                   placeholder="How does this student communicate?"
                 />
@@ -670,7 +670,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.sensoryNeeds}
                   onChange={e => setStudentForm({ ...studentForm, sensoryNeeds: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Sensitive to loud sounds, Seeks deep pressure"
                 />
               </div>
@@ -682,7 +682,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.supportStrategies}
                   onChange={e => setStudentForm({ ...studentForm, supportStrategies: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Visual schedules, Timers for transitions"
                 />
               </div>
@@ -694,7 +694,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.triggers}
                   onChange={e => setStudentForm({ ...studentForm, triggers: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Sudden loud noises, Schedule changes"
                 />
               </div>
@@ -706,7 +706,7 @@ export default function AdminPage() {
                   type="text"
                   value={studentForm.calmingStrategies}
                   onChange={e => setStudentForm({ ...studentForm, calmingStrategies: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="e.g., Music with headphones, Quiet corner time"
                 />
               </div>
@@ -720,7 +720,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={saveStudent}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Save className="h-4 w-4" />
                 {editingStudent ? 'Save Changes' : 'Create Student'}

@@ -77,7 +77,7 @@ export default function ClassesPage() {
             <p className="text-gray-600 mb-4">Get started by creating your first class in the admin panel.</p>
             <Link
               href="/admin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
             >
               <Settings className="h-4 w-4" />
               Go to Admin
@@ -92,16 +92,16 @@ export default function ClassesPage() {
                 <Link
                   key={classItem.id}
                   href={`/classes/${classItem.id}`}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-200 transition-all group"
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-primary-200 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                      <School className="h-6 w-6 text-indigo-600" />
+                    <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center group-hover:bg-primary-200 transition-colors">
+                      <School className="h-6 w-6 text-primary-600" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
                   </div>
                   
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
                     {classItem.name}
                   </h2>
                   
@@ -115,7 +115,7 @@ export default function ClassesPage() {
                       {classItem.studentCount} Students
                     </div>
                     {classItem.ageRange && (
-                      <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                      <span className="text-xs bg-primary-50 text-primary-700 px-2 py-1 rounded-full">
                         {classItem.ageRange}
                       </span>
                     )}
@@ -127,7 +127,7 @@ export default function ClassesPage() {
                       {classStudents.slice(0, 5).map((student) => (
                         <div
                           key={student.id}
-                          className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white"
+                          className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white"
                           title={`${student.firstName} ${student.lastName}`}
                         >
                           {student.firstName[0]}{student.lastName[0]}
@@ -147,12 +147,12 @@ export default function ClassesPage() {
         )}
 
         {/* Info Card */}
-        <div className="mt-12 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-8">
+        <div className="mt-12 bg-gradient-to-r from-primary-50 to-accent-50 rounded-2xl p-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Manage Your Classes
           </h3>
           <p className="text-gray-600">
-            Use the <Link href="/admin" className="text-indigo-600 hover:underline">Admin Panel</Link> to add, edit, or remove classes and students.
+            Use the <Link href="/admin" className="text-primary-600 hover:underline">Admin Panel</Link> to add, edit, or remove classes and students.
             Each student can have personalized AET progression tracking and AI-generated teaching plans.
           </p>
         </div>

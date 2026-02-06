@@ -529,7 +529,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Class Not Found</h1>
-          <Link href="/classes" className="text-indigo-600 hover:underline">
+          <Link href="/classes" className="text-primary-600 hover:underline">
             Return to Classes
           </Link>
         </div>
@@ -550,7 +550,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         {/* Back Button */}
         <Link 
           href="/classes"
-          className="inline-flex items-center text-gray-600 hover:text-indigo-600 mb-6 transition-colors"
+          className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Classes
@@ -568,7 +568,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   {students.length} Students
                 </span>
                 {classData.ageRange && (
-                  <span className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">
+                  <span className="text-xs bg-primary-50 text-primary-700 px-3 py-1 rounded-full">
                     {classData.ageRange}
                   </span>
                 )}
@@ -591,7 +591,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <button
                     onClick={() => generateAllPlans()}
                     disabled={generatingAllPlans || !hasStudentsNeedingPlans}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-ai-500 text-white rounded-lg hover:bg-ai-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generatingAllPlans ? (
                       <>
@@ -626,7 +626,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           {showAllInstructions && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="flex items-start gap-3">
-                <MessageCircle className="h-5 w-5 text-indigo-500 mt-1 flex-shrink-0" />
+                <MessageCircle className="h-5 w-5 text-primary-500 mt-1 flex-shrink-0" />
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Custom Instructions for All Plans</h3>
                   <p className="text-xs text-gray-500 mb-3">These instructions will be applied to all generated plans in this class.</p>
@@ -634,7 +634,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     value={allPlansInstructions}
                     onChange={(e) => setAllPlansInstructions(e.target.value)}
                     placeholder="E.g., Focus on visual supports, include parent involvement activities, keep activities under 10 minutes..."
-                    className="w-full h-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                    className="w-full h-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   />
                   <div className="flex justify-end gap-2 mt-3">
                     <button
@@ -649,7 +649,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <button
                       onClick={() => generateAllPlans(allPlansInstructions)}
                       disabled={generatingAllPlans}
-                      className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-4 py-1.5 bg-ai-500 text-white rounded-lg text-sm hover:bg-ai-600 disabled:opacity-50"
                     >
                       <Sparkles className="h-4 w-4" />
                       Generate All Plans
@@ -673,7 +673,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             <p className="text-gray-600 mb-4">Add students to this class in the admin panel.</p>
             <Link
               href="/admin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
             >
               <Settings className="h-4 w-4" />
               Go to Admin
@@ -707,7 +707,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <div className="lg:w-1/3 p-6 lg:border-r border-gray-100">
                       {/* Student Header */}
                       <div className="flex items-center mb-4">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-lg font-semibold">
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center text-white text-lg font-semibold">
                           {student.firstName[0]}{student.lastName[0]}
                         </div>
                         <div className="ml-4 flex-1">
@@ -750,7 +750,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         </Link>
                         <Link
                           href={`/students/${student.id}/aet`}
-                          className="flex-1 text-center px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                          className="flex-1 text-center px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
                         >
                           All Goals
                         </Link>
@@ -794,7 +794,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               {!isAtCurrentGoal && actualCurrentGoal && (
                                 <button
                                   onClick={() => jumpToCurrentGoal(student.id)}
-                                  className="mr-1 px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors flex items-center gap-1"
+                                  className="mr-1 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors flex items-center gap-1"
                                   title="Jump to current goal"
                                 >
                                   <SkipForward className="h-3 w-3" />
@@ -908,7 +908,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
                                 {generatingPlan === goalKey ? (
                                   <div className="text-center py-8">
-                                    <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" />
+                                    <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-3" />
                                     <p className="text-sm text-gray-600 font-medium">Generating personalized plan...</p>
                                     <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
                                   </div>
@@ -917,7 +917,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <textarea
                                       value={editedPlan}
                                       onChange={(e) => setEditedPlan(e.target.value)}
-                                      className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono text-sm bg-white"
+                                      className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-sm bg-white"
                                       placeholder="Write your teaching plan..."
                                     />
                                     <div className="flex justify-end gap-2 mt-3">
@@ -930,7 +930,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                       </button>
                                       <button
                                         onClick={() => savePlan(student.id, displayedGoal.subcategoryId)}
-                                        className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                                        className="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
                                       >
                                         <Save className="h-4 w-4 mr-1" />
                                         Save Plan
@@ -945,7 +945,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
-                                        className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100"
+                                        className="inline-flex items-center px-3 py-1.5 bg-ai-50 text-ai-600 rounded-lg text-sm font-medium hover:bg-ai-100"
                                       >
                                         <RefreshCw className="h-4 w-4 mr-1" />
                                         Regenerate
@@ -983,7 +983,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                           [goalKey!]: e.target.value
                                         }))}
                                         placeholder={`Add specific instructions for ${student.firstName}'s plan...`}
-                                        className="w-full h-20 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-sm bg-white"
+                                        className="w-full h-20 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm bg-white"
                                       />
                                     </div>
                                     <div className="flex justify-end gap-2">
@@ -995,7 +995,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                       </button>
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
-                                        className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                                        className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
                                         Generate Plan
@@ -1013,14 +1013,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="flex flex-wrap justify-center gap-3">
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
-                                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+                                        className="inline-flex items-center px-4 py-2 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
                                         Generate with AI
                                       </button>
                                       <button
                                         onClick={() => setShowInstructions(goalKey)}
-                                        className="inline-flex items-center px-4 py-2 bg-white text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 border border-indigo-200"
+                                        className="inline-flex items-center px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 border border-primary-200"
                                       >
                                         <MessageCircle className="h-4 w-4 mr-1" />
                                         Add Instructions

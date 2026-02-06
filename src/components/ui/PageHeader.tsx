@@ -14,8 +14,8 @@ export default function PageHeader({
   title,
   description,
   icon: Icon,
-  iconBgColor = 'bg-indigo-100',
-  iconColor = 'text-indigo-600',
+  iconBgColor = 'bg-primary-100',
+  iconColor = 'text-primary-600',
   children,
 }: PageHeaderProps) {
   return (

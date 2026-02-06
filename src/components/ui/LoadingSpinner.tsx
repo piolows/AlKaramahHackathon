@@ -18,7 +18,7 @@ export default function LoadingSpinner({
   fullScreen = true 
 }: LoadingSpinnerProps) {
   const spinner = (
-    <div className={`animate-spin rounded-full border-b-2 border-indigo-600 ${sizeClasses[size]} ${className}`} />
+    <div className={`animate-spin rounded-full border-b-2 border-primary-500 ${sizeClasses[size]} ${className}`} />
   );
 
   if (fullScreen) {
