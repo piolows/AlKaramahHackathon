@@ -90,7 +90,12 @@ ${question}
     }
 
     const data = await response.json();
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Gemini 2.5 Flash returns "thought" parts (internal reasoning) and text parts.
+    // Filter out thought parts and concatenate actual text output.
+    const candidate = data.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
+    const textParts = parts.filter((p: any) => p.text && !p.thought);
+    const answer = textParts.map((p: any) => p.text).join('') || null;
 
     if (!answer) {
       return NextResponse.json(

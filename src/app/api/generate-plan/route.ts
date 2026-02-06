@@ -120,13 +120,26 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     
     // Extract the generated text from Gemini's response
-    const generatedPlan = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Gemini 2.5 Flash is a "thinking" model that returns multiple parts:
+    // - Thought parts (thought: true) are internal reasoning — skip these
+    // - Text parts without thought flag are the actual output
+    const candidate = data.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
+    const textParts = parts.filter((p: any) => p.text && !p.thought);
+    const generatedPlan = textParts.map((p: any) => p.text).join('') || null;
 
     if (!generatedPlan) {
       return NextResponse.json(
         { error: 'No plan generated. Please try again.' },
         { status: 500 }
       );
+    }
+
+    // Check if generation was cut off
+    const finishReason = candidate?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      // Still return what we have, but it may be truncated
+      console.warn('Plan generation was truncated due to MAX_TOKENS');
     }
 
     return NextResponse.json({ plan: generatedPlan });
