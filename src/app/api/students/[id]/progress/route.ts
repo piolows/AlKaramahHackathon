@@ -8,18 +8,6 @@ export async function GET(
 ) {
   try {
     const { id: studentId } = await params
-    
-    // Verify student exists
-    const student = await prisma.student.findUnique({
-      where: { id: studentId }
-    })
-
-    if (!student) {
-      return NextResponse.json(
-        { error: 'Student not found' },
-        { status: 404 }
-      )
-    }
 
     const progress = await prisma.studentProgress.findMany({
       where: { studentId },

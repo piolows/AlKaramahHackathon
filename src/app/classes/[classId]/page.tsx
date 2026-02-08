@@ -175,10 +175,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   useEffect(() => {
     async function fetchData() {
       try {
-        const [classRes, studentsRes, lessonsRes] = await Promise.all([
+        const [classRes, studentsRes, lessonsRes, progressRes] = await Promise.all([
           fetch(`/api/classes/${classId}`),
           fetch(`/api/students?classId=${classId}`),
-          fetch(`/api/classes/${classId}/lessons`)
+          fetch(`/api/classes/${classId}/lessons`),
+          fetch(`/api/classes/${classId}/progress`)
         ]);
         
         if (classRes.ok) {
@@ -188,18 +189,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         if (studentsRes.ok) {
           const studentsData = await studentsRes.json();
           setStudents(studentsData);
-          
-          // Fetch progress for all students
-          const progressPromises = studentsData.map((s: Student) => 
-            fetch(`/api/students/${s.id}/progress`).then(r => r.ok ? r.json() : {})
-          );
-          const progressResults = await Promise.all(progressPromises);
-          
-          const progressMap: Record<string, Record<string, SubcategoryProgress>> = {};
-          studentsData.forEach((s: Student, i: number) => {
-            progressMap[s.id] = progressResults[i];
-          });
-          setStudentProgress(progressMap);
+        }
+
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          setStudentProgress(progressData);
         }
         
         // Load saved lessons (don't auto-expand — user can open via dropdown)
