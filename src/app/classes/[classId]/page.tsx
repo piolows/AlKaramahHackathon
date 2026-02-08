@@ -25,7 +25,13 @@ import {
   SkipForward,
   Settings,
   Brain,
-  MessageSquare
+  MessageSquare,
+  BookOpen,
+  FileText,
+  Printer,
+  History,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
@@ -69,6 +75,15 @@ interface CurrentGoal {
   subcategory: Subcategory;
 }
 
+interface SavedLesson {
+  id: string;
+  curriculumArea: string;
+  lessonTopic: string;
+  learningObjective: string;
+  content: string;
+  createdAt: string;
+}
+
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
   const [classData, setClassData] = useState<ClassData | null>(null);
@@ -97,13 +112,32 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [viewedGoals, setViewedGoals] = useState<Record<string, string>>({});
   // State for completion animation (studentId -> 'completing' | 'fading' | null)
   const [completionPhase, setCompletionPhase] = useState<Record<string, 'completing' | 'fading' | null>>({});
+  
+  // State for class lesson generation
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [generatingLesson, setGeneratingLesson] = useState(false);
+  const [generatedLesson, setGeneratedLesson] = useState<string | null>(null);
+  const [lessonError, setLessonError] = useState<string | null>(null);
+  const [lessonForm, setLessonForm] = useState({
+    curriculumArea: 'Mathematics',
+    lessonTopic: '',
+    learningObjective: '',
+    additionalNotes: ''
+  });
+  
+  // State for saved lessons
+  const [savedLessons, setSavedLessons] = useState<SavedLesson[]>([]);
+  const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
+  const [showLessonHistory, setShowLessonHistory] = useState(false);
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [classRes, studentsRes] = await Promise.all([
+        const [classRes, studentsRes, lessonsRes] = await Promise.all([
           fetch(`/api/classes/${classId}`),
-          fetch(`/api/students?classId=${classId}`)
+          fetch(`/api/students?classId=${classId}`),
+          fetch(`/api/classes/${classId}/lessons`)
         ]);
         
         if (classRes.ok) {
@@ -125,6 +159,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             progressMap[s.id] = progressResults[i];
           });
           setStudentProgress(progressMap);
+        }
+        
+        // Load saved lessons (don't auto-expand — user can open via dropdown)
+        if (lessonsRes.ok) {
+          const lessonsData = await lessonsRes.json();
+          setSavedLessons(lessonsData);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -522,6 +562,92 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setAllPlansProgress(null);
   };
 
+  // Generate unified class lesson plan
+  const generateClassLesson = async () => {
+    if (!classData || students.length === 0) return;
+    
+    setGeneratingLesson(true);
+    setLessonError(null);
+    
+    try {
+      // Build student profiles with their current goals
+      const studentProfiles = students.map(student => {
+        const currentGoal = getCurrentGoal(student.id);
+        return {
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          dateOfBirth: student.dateOfBirth,
+          diagnoses: student.diagnoses,
+          strengths: student.strengths,
+          challenges: student.challenges,
+          interests: student.interests,
+          sensoryNeeds: student.sensoryNeeds,
+          communicationStyle: student.communicationStyle,
+          supportStrategies: student.supportStrategies,
+          triggers: student.triggers,
+          calmingStrategies: student.calmingStrategies,
+          teacherNotes: student.teacherNotes,
+          currentGoals: currentGoal ? [{
+            areaName: currentGoal.area.name,
+            categoryName: currentGoal.category.name,
+            subcategoryName: currentGoal.subcategory.name,
+            level: studentProgress[student.id]?.[currentGoal.subcategoryId]?.level || 1
+          }] : []
+        };
+      });
+
+      const response = await fetch('/api/generate-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          className: classData.name,
+          ageRange: classData.ageRange || '5-10',
+          students: studentProfiles,
+          lessonTopic: lessonForm.lessonTopic,
+          curriculumArea: lessonForm.curriculumArea,
+          learningObjective: lessonForm.learningObjective,
+          additionalNotes: lessonForm.additionalNotes || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate lesson');
+      }
+
+      // Save the lesson to the database
+      const saveRes = await fetch(`/api/classes/${classId}/lessons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          curriculumArea: lessonForm.curriculumArea,
+          lessonTopic: lessonForm.lessonTopic,
+          learningObjective: lessonForm.learningObjective,
+          additionalNotes: lessonForm.additionalNotes || null,
+          content: data.lesson,
+        }),
+      });
+
+      if (saveRes.ok) {
+        const savedLesson = await saveRes.json();
+        setSavedLessons(prev => [savedLesson, ...prev]);
+        setCurrentLessonId(savedLesson.id);
+      }
+
+      setGeneratedLesson(data.lesson);
+      setShowLessonModal(false);
+      // Reset form for next use
+      setLessonForm({ curriculumArea: 'Mathematics', lessonTopic: '', learningObjective: '', additionalNotes: '' });
+    } catch (error) {
+      console.error('Error generating lesson:', error);
+      setLessonError(error instanceof Error ? error.message : 'Failed to generate lesson');
+    } finally {
+      setGeneratingLesson(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -589,7 +715,16 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               const hasStudentsNeedingPlans = studentsNeedingPlans.length > 0;
               
               return (
-                <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2">
+                <div className="mt-4 md:mt-0 flex flex-col md:flex-row gap-2 flex-wrap">
+                  {/* New: Generate Class Lesson Button */}
+                  <button
+                    onClick={() => setShowLessonModal(true)}
+                    disabled={generatingLesson}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span>Generate Class Lesson</span>
+                  </button>
                   <button
                     onClick={() => generateAllPlans()}
                     disabled={generatingAllPlans || !hasStudentsNeedingPlans}
@@ -607,7 +742,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        <span>Generate All {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
+                        <span>Individual AET Plans {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
                       </>
                     )}
                   </button>
@@ -661,7 +796,369 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               </div>
             </div>
           )}
+          
+          {/* Class Lesson Generation Modal */}
+          {showLessonModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 rounded-lg">
+                        <BookOpen className="h-6 w-6 text-emerald-600" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Generate Class Lesson</h2>
+                        <p className="text-sm text-gray-500">Create a unified lesson with differentiated entry points for all students</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowLessonModal(false)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="h-5 w-5 text-gray-500" />
+                    </button>
+                  </div>
+                  
+                  {lessonError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      <p className="text-sm text-red-700">{lessonError}</p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Curriculum Area *
+                      </label>
+                      <select
+                        value={lessonForm.curriculumArea}
+                        onChange={(e) => setLessonForm(prev => ({ ...prev, curriculumArea: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Literacy">Literacy</option>
+                        <option value="Communication and Language">Communication and Language</option>
+                        <option value="Understanding the World">Understanding the World</option>
+                        <option value="Physical Development">Physical Development</option>
+                        <option value="Personal, Social and Emotional Development">Personal, Social and Emotional Development</option>
+                        <option value="Expressive Arts and Design">Expressive Arts and Design</option>
+                        <option value="Science">Science</option>
+                        <option value="Life Skills">Life Skills</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Lesson Topic *
+                      </label>
+                      <input
+                        type="text"
+                        value={lessonForm.lessonTopic}
+                        onChange={(e) => setLessonForm(prev => ({ ...prev, lessonTopic: e.target.value }))}
+                        placeholder="e.g., Counting and one-to-one correspondence, Using money, Shapes"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Learning Objective *
+                      </label>
+                      <input
+                        type="text"
+                        value={lessonForm.learningObjective}
+                        onChange={(e) => setLessonForm(prev => ({ ...prev, learningObjective: e.target.value }))}
+                        placeholder="e.g., Children will understand that numbers represent quantities"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">This single objective will be accessed by ALL students at different levels</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Additional Notes (Optional)
+                      </label>
+                      <textarea
+                        value={lessonForm.additionalNotes}
+                        onChange={(e) => setLessonForm(prev => ({ ...prev, additionalNotes: e.target.value }))}
+                        placeholder="e.g., We have ducks props available, focus on outdoor activities, link to recent school trip..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                      />
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">What will be generated:</h4>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Circle Time / Hook activity with songs
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Attention Autism stages (Bucket Time, concept introduction)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Main activity with differentiated entry points per student
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Continuous provision / play-based activities
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Resources checklist (visuals, props, materials)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-emerald-500" />
+                          Communication goals embedded for each student
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowLessonModal(false)}
+                      className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={generateClassLesson}
+                      disabled={generatingLesson || !lessonForm.lessonTopic || !lessonForm.learningObjective}
+                      className="inline-flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingLesson ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4" />
+                          <span>Generate Lesson Plan</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+        
+        {/* Last Lesson Dropdown — only shown if there are saved lessons */}
+        {savedLessons.length > 0 && !generatedLesson && (() => {
+          const lastLesson = savedLessons[0];
+          return (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden">
+              <button
+                onClick={() => {
+                  setGeneratedLesson(lastLesson.content);
+                  setCurrentLessonId(lastLesson.id);
+                }}
+                className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <FileText className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900">Last Lesson: {lastLesson.lessonTopic}</p>
+                    <p className="text-xs text-gray-500">
+                      {lastLesson.curriculumArea} &middot; {new Date(lastLesson.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <span className="text-sm font-medium">View</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              </button>
+            </div>
+          );
+        })()}
+        
+        {/* Generated Class Lesson Display */}
+        {generatedLesson && (() => {
+          const currentSavedLesson = savedLessons.find(l => l.id === currentLessonId);
+          return (
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-emerald-200 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Class Lesson Plan</h2>
+                  {currentSavedLesson ? (
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-sm text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                        {currentSavedLesson.curriculumArea}
+                      </span>
+                      <span className="text-sm text-gray-500 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(currentSavedLesson.createdAt).toLocaleDateString('en-GB', { 
+                          day: 'numeric', month: 'short', year: 'numeric' 
+                        })}
+                      </span>
+                      <span className="text-sm text-gray-400 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(currentSavedLesson.createdAt).toLocaleTimeString('en-GB', { 
+                          hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Unified lesson with differentiated entry points</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {savedLessons.length > 1 && (
+                  <button
+                    onClick={() => setShowLessonHistory(!showLessonHistory)}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                      showLessonHistory 
+                        ? 'text-emerald-700 bg-emerald-100' 
+                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    <History className="h-4 w-4" />
+                    <span>History ({savedLessons.length})</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print</span>
+                </button>
+                <button
+                  onClick={() => setShowLessonModal(true)}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>New Lesson</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setGeneratedLesson(null);
+                    setCurrentLessonId(null);
+                    setShowLessonHistory(false);
+                  }}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Hide lesson"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Lesson History Panel */}
+            {showLessonHistory && (
+              <div className="mb-6 border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-700">Previous Lessons</h3>
+                </div>
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                  {savedLessons.map((lesson) => (
+                    <div 
+                      key={lesson.id}
+                      className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
+                        lesson.id === currentLessonId 
+                          ? 'bg-emerald-50 border-l-4 border-emerald-500' 
+                          : 'hover:bg-gray-50 border-l-4 border-transparent'
+                      }`}
+                      onClick={() => {
+                        setGeneratedLesson(lesson.content);
+                        setCurrentLessonId(lesson.id);
+                      }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                            {lesson.curriculumArea}
+                          </span>
+                          {lesson.id === currentLessonId && (
+                            <span className="text-xs text-emerald-600 font-medium">Viewing</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 truncate">{lesson.lessonTopic}</p>
+                        <p className="text-xs text-gray-500 truncate">{lesson.learningObjective}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(lesson.createdAt).toLocaleDateString('en-GB', { 
+                            day: 'numeric', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Delete this lesson plan?')) {
+                            setDeletingLessonId(lesson.id);
+                            fetch(`/api/classes/${classId}/lessons/${lesson.id}`, { method: 'DELETE' })
+                              .then(res => {
+                                if (res.ok) {
+                                  setSavedLessons(prev => prev.filter(l => l.id !== lesson.id));
+                                  if (currentLessonId === lesson.id) {
+                                    const remaining = savedLessons.filter(l => l.id !== lesson.id);
+                                    if (remaining.length > 0) {
+                                      setGeneratedLesson(remaining[0].content);
+                                      setCurrentLessonId(remaining[0].id);
+                                    } else {
+                                      setGeneratedLesson(null);
+                                      setCurrentLessonId(null);
+                                      setShowLessonHistory(false);
+                                    }
+                                  }
+                                }
+                              })
+                              .finally(() => setDeletingLessonId(null));
+                          }
+                        }}
+                        className="ml-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                        title="Delete lesson"
+                      >
+                        {deletingLessonId === lesson.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-xl font-bold text-gray-800 mt-6 mb-3">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h3>,
+                  h4: ({ children }) => <h4 className="text-base font-semibold text-gray-700 mt-4 mb-2">{children}</h4>,
+                  p: ({ children }) => <p className="text-gray-700 mb-3">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                  hr: () => <hr className="my-6 border-gray-200" />,
+                }}
+              >
+                {generatedLesson}
+              </ReactMarkdown>
+            </div>
+          </div>
+          );
+        })()}
 
         {/* Students Grid */}
         <div className="mb-6">

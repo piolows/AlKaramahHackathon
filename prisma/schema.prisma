@@ -22,6 +22,7 @@ model Class {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   students    Student[]
+  lessons     Lesson[]
 }
 
 // ============================================
@@ -72,4 +73,23 @@ model StudentProgress {
   updatedAt      DateTime @updatedAt
   
   @@unique([studentId, subcategoryId])  // Each student can only have one progress record per subcategory
+}
+
+// ============================================
+// LESSON MODEL
+// Stores generated class lesson plans
+// ============================================
+model Lesson {
+  id                String   @id @default(cuid())
+  classId           String
+  class             Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  curriculumArea    String   // e.g., "Mathematics", "Literacy"
+  lessonTopic       String   // e.g., "Counting and one-to-one correspondence"
+  learningObjective String   // The single learning intention
+  additionalNotes   String?  // Optional teacher notes
+  content           String   // The full generated lesson plan (markdown)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

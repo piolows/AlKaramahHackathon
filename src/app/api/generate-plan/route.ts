@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1500,
+          maxOutputTokens: 8192, // Increased for Gemini 2.5 Flash thinking model
         },
         safetySettings: [
           {

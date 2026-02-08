@@ -61,7 +61,7 @@ ${question}
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1500,
+          maxOutputTokens: 8192, // Increased for Gemini 2.5 Flash thinking model
         },
         safetySettings: [
           { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
@@ -96,6 +96,12 @@ ${question}
     const parts = candidate?.content?.parts || [];
     const textParts = parts.filter((p: any) => p.text && !p.thought);
     const answer = textParts.map((p: any) => p.text).join('') || null;
+
+    // Check if generation was truncated
+    const finishReason = candidate?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn('Consult response was truncated due to MAX_TOKENS');
+    }
 
     if (!answer) {
       return NextResponse.json(

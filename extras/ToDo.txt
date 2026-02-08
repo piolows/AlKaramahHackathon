@@ -18,6 +18,8 @@
 - Refine prompt
 	- Take into account grade and British curriculum
 	- Never incorporate electronic devices for students
+- Knowledge base; store info/feedback on whatever goals, resources, etc. Viewable by any teacher
+- Refine individual plan prompts; consider classroom dynamics blablabla
 
 
 - RAG / Flashcards
