@@ -631,7 +631,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                           }`}
                                         >
                                           <Sparkles className="h-3 w-3 mr-1" />
-                                          {hasPlan ? 'View Plan' : 'Add Plan'}
+                                          {hasPlan ? 'View Goal Plan' : 'Add Goal Plan'}
                                           {isSubExpanded ? (
                                             <ChevronUp className="h-3 w-3 ml-1" />
                                             ) : (
@@ -658,7 +658,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         {generatingPlan === subcategory.id ? (
                                           <div className="text-center py-6">
                                             <Loader2 className="w-6 h-6 text-primary-500 animate-spin mx-auto mb-3" />
-                                            <p className="text-sm text-gray-600 font-medium">Generating personalized plan...</p>
+                                            <p className="text-sm text-gray-600 font-medium">Generating goal overview...</p>
                                             <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
                                           </div>
                                         ) : editingPlan === subcategory.id ? (
@@ -667,7 +667,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               value={editedPlan}
                                               onChange={(e) => setEditedPlan(e.target.value)}
                                               className="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-xs bg-white"
-                                              placeholder="Write your personalized teaching plan..."
+                                              placeholder="Write your goal plan..."
                                             />
                                             <div className="flex justify-end gap-2 mt-2">
                                               <button
@@ -733,7 +733,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div>
                                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                                 <MessageCircle className="h-3 w-3 inline mr-1" />
-                                                Additional Instructions (Optional)
+                                                Additional Context (Optional)
                                               </label>
                                               <textarea
                                                 value={customInstructions[subcategory.id] || ''}
@@ -741,7 +741,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                   ...prev,
                                                   [subcategory.id]: e.target.value
                                                 }))}
-                                                placeholder={`Add specific instructions for ${student.firstName}'s plan...`}
+                                                placeholder={`Add extra context for ${student.firstName}'s goal...`}
                                                 className="w-full h-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-xs bg-white"
                                               />
                                             </div>
@@ -767,7 +767,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div className="text-center py-2">
                                               <Wand2 className="h-6 w-6 text-gray-300 mx-auto mb-2" />
                                               <p className="text-xs text-gray-600">
-                                                Generate a personalized plan for <strong>{subcategory.name}</strong>
+                                                Get goal guidance for <strong>{subcategory.name}</strong>
                                               </p>
                                             </div>
                                             
@@ -784,7 +784,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium hover:bg-primary-50 border border-primary-200"
                                               >
                                                 <MessageCircle className="h-3 w-3 mr-1" />
-                                                Add Instructions
+                                                Add Extra Context
                                               </button>
                                               <button
                                                 onClick={() => {

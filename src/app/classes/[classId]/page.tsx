@@ -105,8 +105,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   // State for generating all plans
   const [generatingAllPlans, setGeneratingAllPlans] = useState(false);
   const [allPlansProgress, setAllPlansProgress] = useState<{ current: number; total: number } | null>(null);
-  const [showAllInstructions, setShowAllInstructions] = useState(false);
-  const [allPlansInstructions, setAllPlansInstructions] = useState('');
+
   
   // State for goal navigation (studentId -> subcategoryId of viewed goal)
   const [viewedGoals, setViewedGoals] = useState<Record<string, string>>({});
@@ -130,6 +129,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
   const [showLessonHistory, setShowLessonHistory] = useState(false);
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+  
+  // State for lesson editing/refining
+  const [editingLesson, setEditingLesson] = useState(false);
+  const [editedLessonContent, setEditedLessonContent] = useState('');
+  const [showRefineInput, setShowRefineInput] = useState(false);
+  const [refineFeedback, setRefineFeedback] = useState('');
+  const [refiningLesson, setRefiningLesson] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -492,7 +498,6 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setGeneratingAllPlans(true);
     setAllPlansProgress({ current: 0, total: studentsWithGoals.length });
     setGenerationError(null);
-    setShowAllInstructions(false);
 
     for (let i = 0; i < studentsWithGoals.length; i++) {
       const { student, goal, progress } = studentsWithGoals[i];
@@ -648,6 +653,95 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
+  // Refine an existing lesson with AI
+  const refineLesson = async () => {
+    if (!generatedLesson || !refineFeedback.trim()) return;
+    
+    setRefiningLesson(true);
+    try {
+      const response = await fetch('/api/refine-lesson', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentLesson: generatedLesson,
+          teacherFeedback: refineFeedback.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to refine lesson');
+
+      setGeneratedLesson(data.lesson);
+      setShowRefineInput(false);
+      setRefineFeedback('');
+
+      // Update in database if this is a saved lesson
+      if (currentLessonId) {
+        const patchRes = await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: data.lesson }),
+        });
+        if (patchRes.ok) {
+          const updated = await patchRes.json();
+          setSavedLessons(prev => prev.map(l => l.id === currentLessonId ? { ...l, content: updated.content } : l));
+        }
+      }
+    } catch (error) {
+      console.error('Error refining lesson:', error);
+      setLessonError(error instanceof Error ? error.message : 'Failed to refine lesson');
+    } finally {
+      setRefiningLesson(false);
+    }
+  };
+
+  // Save manually edited lesson content
+  const saveLessonEdit = async () => {
+    setGeneratedLesson(editedLessonContent);
+    setEditingLesson(false);
+
+    if (currentLessonId) {
+      const patchRes = await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editedLessonContent }),
+      });
+      if (patchRes.ok) {
+        const updated = await patchRes.json();
+        setSavedLessons(prev => prev.map(l => l.id === currentLessonId ? { ...l, content: updated.content } : l));
+      }
+    }
+  };
+
+  // Delete the currently viewed lesson
+  const deleteCurrentLesson = async () => {
+    if (!currentLessonId) {
+      // Unsaved lesson — just clear it
+      setGeneratedLesson(null);
+      return;
+    }
+
+    if (!confirm('Delete this lesson plan?')) return;
+
+    try {
+      const res = await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, { method: 'DELETE' });
+      if (res.ok) {
+        const remaining = savedLessons.filter(l => l.id !== currentLessonId);
+        setSavedLessons(remaining);
+        if (remaining.length > 0) {
+          setGeneratedLesson(remaining[0].content);
+          setCurrentLessonId(remaining[0].id);
+        } else {
+          setGeneratedLesson(null);
+          setCurrentLessonId(null);
+          setShowLessonHistory(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting lesson:', error);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -727,7 +821,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   </button>
                   <button
                     onClick={() => generateAllPlans()}
-                    disabled={generatingAllPlans || !hasStudentsNeedingPlans}
+                    disabled={generatingAllPlans || !hasStudentsNeedingPlans || (!generatedLesson && savedLessons.length === 0)}
+                    title={(!generatedLesson && savedLessons.length === 0) ? 'Generate or select a class lesson first' : undefined}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-ai-500 text-white rounded-lg hover:bg-ai-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generatingAllPlans ? (
@@ -742,60 +837,16 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        <span>Individual AET Plans {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
+                        <span>Individual Goal Plans {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
                       </>
                     )}
-                  </button>
-                  <button
-                    onClick={() => setShowAllInstructions(true)}
-                    disabled={generatingAllPlans || !hasStudentsNeedingPlans}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Add Instructions</span>
                   </button>
                 </div>
               );
             })()}
           </div>
           
-          {/* Generate All with Instructions Panel */}
-          {showAllInstructions && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-start gap-3">
-                <MessageCircle className="h-5 w-5 text-primary-500 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">Custom Instructions for All Plans</h3>
-                  <p className="text-xs text-gray-500 mb-3">These instructions will be applied to all generated plans in this class.</p>
-                  <textarea
-                    value={allPlansInstructions}
-                    onChange={(e) => setAllPlansInstructions(e.target.value)}
-                    placeholder="E.g., Focus on visual supports, include parent involvement activities, keep activities under 10 minutes..."
-                    className="w-full h-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                  />
-                  <div className="flex justify-end gap-2 mt-3">
-                    <button
-                      onClick={() => {
-                        setShowAllInstructions(false);
-                        setAllPlansInstructions('');
-                      }}
-                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => generateAllPlans(allPlansInstructions)}
-                      disabled={generatingAllPlans}
-                      className="inline-flex items-center gap-2 px-4 py-1.5 bg-ai-500 text-white rounded-lg text-sm hover:bg-ai-600 disabled:opacity-50"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Generate All Plans
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+
           
           {/* Class Lesson Generation Modal */}
           {showLessonModal && (
@@ -1138,24 +1189,124 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               </div>
             )}
             
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown
-                components={{
-                  h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-xl font-bold text-gray-800 mt-6 mb-3">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h3>,
-                  h4: ({ children }) => <h4 className="text-base font-semibold text-gray-700 mt-4 mb-2">{children}</h4>,
-                  p: ({ children }) => <p className="text-gray-700 mb-3">{children}</p>,
-                  ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
-                  li: ({ children }) => <li className="text-gray-700">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                  hr: () => <hr className="my-6 border-gray-200" />,
-                }}
-              >
-                {generatedLesson}
-              </ReactMarkdown>
-            </div>
+            {editingLesson ? (
+              <div>
+                <textarea
+                  value={editedLessonContent}
+                  onChange={(e) => setEditedLessonContent(e.target.value)}
+                  className="w-full h-96 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y font-mono text-sm bg-white"
+                  placeholder="Edit your lesson plan..."
+                />
+                <div className="flex justify-end gap-2 mt-3">
+                  <button
+                    onClick={() => setEditingLesson(false)}
+                    className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveLessonEdit}
+                    className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-xl font-bold text-gray-800 mt-6 mb-3">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h3>,
+                    h4: ({ children }) => <h4 className="text-base font-semibold text-gray-700 mt-4 mb-2">{children}</h4>,
+                    p: ({ children }) => <p className="text-gray-700 mb-3">{children}</p>,
+                    ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
+                    li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                    strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                    hr: () => <hr className="my-6 border-gray-200" />,
+                  }}
+                >
+                  {generatedLesson}
+                </ReactMarkdown>
+              </div>
+            )}
+            
+            {/* Refine Input */}
+            {showRefineInput && !editingLesson && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <RefreshCw className="h-4 w-4 inline mr-1" />
+                  What would you like to change?
+                </label>
+                <textarea
+                  value={refineFeedback}
+                  onChange={(e) => setRefineFeedback(e.target.value)}
+                  placeholder="E.g., Make the bucket time activity more sensory-focused, add a calming break between stages, simplify the language for the worksheets..."
+                  className="w-full h-24 p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                  disabled={refiningLesson}
+                />
+                <div className="flex justify-end gap-2 mt-3">
+                  <button
+                    onClick={() => { setShowRefineInput(false); setRefineFeedback(''); }}
+                    disabled={refiningLesson}
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={refineLesson}
+                    disabled={refiningLesson || !refineFeedback.trim()}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {refiningLesson ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Refining...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Refine Lesson
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lesson Action Buttons */}
+            {!editingLesson && !showRefineInput && (
+              <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowRefineInput(true)}
+                  className="inline-flex items-center px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refine Lesson
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingLesson(true);
+                    setEditedLessonContent(generatedLesson || '');
+                  }}
+                  className="inline-flex items-center px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
+                </button>
+                <button
+                  onClick={deleteCurrentLesson}
+                  className="inline-flex items-center px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
           );
         })()}
@@ -1382,7 +1533,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             >
                               <span className="flex items-center gap-2">
                                 <Sparkles className="h-4 w-4" />
-                                {hasPlan ? 'View Teaching Plan' : 'Add Teaching Plan'}
+                                {hasPlan ? 'View Goal Plan' : 'Add Goal Plan'}
                               </span>
                               {isGoalExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -1408,7 +1559,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 {generatingPlan === goalKey ? (
                                   <div className="text-center py-8">
                                     <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-3" />
-                                    <p className="text-sm text-gray-600 font-medium">Generating personalized plan...</p>
+                                    <p className="text-sm text-gray-600 font-medium">Generating goal overview...</p>
                                     <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
                                   </div>
                                 ) : editingPlan === goalKey ? (
@@ -1417,7 +1568,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                       value={editedPlan}
                                       onChange={(e) => setEditedPlan(e.target.value)}
                                       className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-sm bg-white"
-                                      placeholder="Write your teaching plan..."
+                                      placeholder="Write your goal plan..."
                                     />
                                     <div className="flex justify-end gap-2 mt-3">
                                       <button
@@ -1473,7 +1624,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-2">
                                         <MessageCircle className="h-4 w-4 inline mr-1" />
-                                        Additional Instructions
+                                        Additional Context
                                       </label>
                                       <textarea
                                         value={customInstructions[goalKey!] || ''}
@@ -1481,7 +1632,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                           ...prev,
                                           [goalKey!]: e.target.value
                                         }))}
-                                        placeholder={`Add specific instructions for ${student.firstName}'s plan...`}
+                                        placeholder={`Add extra context for ${student.firstName}'s goal...`}
                                         className="w-full h-20 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm bg-white"
                                       />
                                     </div>
@@ -1506,7 +1657,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="text-center py-4">
                                       <Wand2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                                       <p className="text-sm text-gray-600">
-                                        Generate a personalized plan for <strong>{displayedGoal.subcategory.name}</strong>
+                                        Get goal guidance for <strong>{displayedGoal.subcategory.name}</strong>
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap justify-center gap-3">
@@ -1522,7 +1673,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 border border-primary-200"
                                       >
                                         <MessageCircle className="h-4 w-4 mr-1" />
-                                        Add Instructions
+                                        Add Extra Context
                                       </button>
                                       <button
                                         onClick={() => {

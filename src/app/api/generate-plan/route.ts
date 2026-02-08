@@ -160,7 +160,7 @@ function buildPrompt(
 ): string {
   const age = calculateAge(student.dateOfBirth);
   
-  return `You are an expert special education teacher specializing in autism education, specifically trained in the Autism Education Trust (AET) Progression Framework. Your task is to create a detailed, personalized teaching plan.
+  return `You are an expert special education teacher specializing in autism education, specifically trained in the Autism Education Trust (AET) Progression Framework. You are writing a concise goal overview for a teacher.
 
 ## STUDENT PROFILE
 
@@ -171,13 +171,13 @@ ${student.className ? `**Class:** ${student.className}` : ''}
 **Diagnoses:**
 ${student.diagnoses.map(d => `- ${d}`).join('\n')}
 
-**Strengths (USE THESE in your plan!):**
+**Strengths:**
 ${student.strengths.map(s => `- ${s}`).join('\n')}
 
 **Challenges:**
 ${student.challenges.map(c => `- ${c}`).join('\n')}
 
-**Interests (Incorporate these for motivation!):**
+**Interests:**
 ${student.interests.map(i => `- ${i}`).join('\n')}
 
 **Sensory Needs:**
@@ -209,34 +209,27 @@ ${component.nextLevelDescription ? `**Target (Next Level):** ${component.nextLev
 
 ---
 
-${customInstructions ? `## TEACHER'S ADDITIONAL INSTRUCTIONS
+${customInstructions ? `## TEACHER'S ADDITIONAL CONTEXT
 ${customInstructions}
 
 ---
 
 ` : ''}## YOUR TASK
 
-Create a SHORT, practical teaching plan (1-2 weeks focus). Keep it concise and actionable.
-This is for a school for autistic children, and it follows a British curriculum.
-Keep in mind the student's age and grade.
-Unless specified in any above instructions, do not incorporate any devices, students do not use any in class.
+Write a short, helpful goal overview for this child. This is for a school for autistic children following a British curriculum. Keep it personalised to this specific child — reference their profile, strengths, and interests where relevant.
 
-## REQUIRED FORMAT (keep it brief!)
+## REQUIRED FORMAT (keep it concise!)
 
-**Goal:** [One clear, measurable sentence]
+**What This Goal Means:**
+[2-3 sentences explaining what this AET skill/goal involves in plain language. What does it look like in practice?]
 
-**Activities (3-4 bullet points max):**
-- [Activity using their interests]
-- [Activity using their strength]
-- [Practice opportunity]
+**Advice & Guidance:**
+[3-4 bullet points of practical tips specific to this child — reference their strengths, interests, and communication style]
 
-**Supports Needed:**
-- [Key accommodation based on sensory/communication needs]
+**What Success Looks Like Generally, and What It Looks Like for ${student.firstName}:**
+[2-3 observable, realistic indicators that ${student.firstName} is progressing — personalised to their profile]
 
-**Success Looks Like:**
-- [One observable indicator]
-
-Be concise! Maximum 150 words total. No lengthy explanations.`;
+Keep it under 120 words total. Be warm, practical, and specific to this child. No generic advice.`;
 }
 
 function calculateAge(dateOfBirth: string): number {

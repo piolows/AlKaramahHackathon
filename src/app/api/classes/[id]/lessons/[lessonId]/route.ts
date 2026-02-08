@@ -22,3 +22,43 @@ export async function DELETE(
     );
   }
 }
+
+// PATCH update a lesson's content
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
+) {
+  try {
+    const { lessonId } = await params;
+    const body = await request.json();
+    const { content } = body;
+
+    if (!content) {
+      return NextResponse.json(
+        { error: 'Content is required' },
+        { status: 400 }
+      );
+    }
+
+    const lesson = await prisma.lesson.update({
+      where: { id: lessonId },
+      data: { content },
+      select: {
+        id: true,
+        curriculumArea: true,
+        lessonTopic: true,
+        learningObjective: true,
+        content: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(lesson);
+  } catch (error) {
+    console.error('Error updating lesson:', error);
+    return NextResponse.json(
+      { error: 'Failed to update lesson' },
+      { status: 500 }
+    );
+  }
+}

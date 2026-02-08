@@ -20,6 +20,7 @@
 	- Never incorporate electronic devices for students
 - Knowledge base; store info/feedback on whatever goals, resources, etc. Viewable by any teacher
 - Refine individual plan prompts; consider classroom dynamics blablabla
+- Visual feedback in lesson actions (refine/delete)
 
 
 - RAG / Flashcards
