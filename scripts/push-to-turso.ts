@@ -45,7 +45,7 @@ async function main() {
     .filter(s => !s.startsWith('DELETE FROM "_prisma_migrations"'));
 
   // Sort: CREATE TABLE first (in dependency order), then CREATE INDEX, then INSERTs (in dependency order)
-  const tableOrder = ['Class', 'Student', 'StudentProgress', 'Lesson'];
+  const tableOrder = ['Class', 'Student', 'StudentProgress', 'Lesson', 'CustomCard'];
   
   const createTableStmts = statements.filter(s => s.startsWith('CREATE TABLE'));
   const createIndexStmts = statements.filter(s => s.startsWith('CREATE UNIQUE') || s.startsWith('CREATE INDEX'));

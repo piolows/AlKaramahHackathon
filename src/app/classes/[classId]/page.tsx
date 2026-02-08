@@ -36,7 +36,8 @@ import {
   ArrowRight,
   Plus,
   Search,
-  GripVertical
+  GripVertical,
+  Upload
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
@@ -163,6 +164,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef<Record<number, number>>({});
+  // Custom cards state
+  const [customCards, setCustomCards] = useState<{ id: string; name: string; imageData: string; createdAt: string }[]>([]);
+  const [cardModalTab, setCardModalTab] = useState<'search' | 'custom' | 'upload'>('search');
+  const [uploadCardName, setUploadCardName] = useState('');
+  const [uploadCardImage, setUploadCardImage] = useState<string | null>(null);
+  const [uploadingCard, setUploadingCard] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -949,7 +957,91 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     setNewCardLabel('');
   };
 
-  // Print visual schedule
+  // Add a custom card to the visual schedule
+  const addCustomCardToSchedule = (card: { id: string; name: string; imageData: string }) => {
+    const newStep = {
+      label: card.name,
+      searchWord: card.name.toLowerCase(),
+      pictogramId: null,
+      pictogramUrl: card.imageData, // data URI
+    };
+    const updated = [...(visualSteps || []), newStep];
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
+    setShowAddCardModal(false);
+    setNewCardLabel('');
+  };
+
+  // Fetch custom cards
+  const fetchCustomCards = useCallback(async () => {
+    try {
+      const res = await fetch('/api/custom-cards');
+      if (res.ok) {
+        const data = await res.json();
+        setCustomCards(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch custom cards:', error);
+    }
+  }, []);
+
+  // Upload a custom card
+  const uploadCustomCard = async () => {
+    if (!uploadCardName.trim() || !uploadCardImage) return;
+    setUploadingCard(true);
+    try {
+      const res = await fetch('/api/custom-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: uploadCardName.trim(), imageData: uploadCardImage }),
+      });
+      if (res.ok) {
+        const card = await res.json();
+        setCustomCards(prev => [card, ...prev]);
+        setUploadCardName('');
+        setUploadCardImage(null);
+        setCardModalTab('custom');
+      }
+    } catch (error) {
+      console.error('Failed to upload custom card:', error);
+    } finally {
+      setUploadingCard(false);
+    }
+  };
+
+  // Delete a custom card
+  const deleteCustomCard = async (cardId: string) => {
+    if (!confirm('Delete this custom card? It will not be removed from existing schedules.')) return;
+    try {
+      const res = await fetch(`/api/custom-cards/${cardId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setCustomCards(prev => prev.filter(c => c.id !== cardId));
+      }
+    } catch (error) {
+      console.error('Failed to delete custom card:', error);
+    }
+  };
+
+  // Handle file selection for custom card upload
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, etc.)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image too large. Maximum size is 2MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setUploadCardImage(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Print lesson + visual schedule
   const printVisualSchedule = () => {
     window.print();
   };
@@ -1251,7 +1343,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         {generatedLesson && (() => {
           const currentSavedLesson = savedLessons.find(l => l.id === currentLessonId);
           return (
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-emerald-200 mb-8">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-emerald-200 mb-8" id="printable-content">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 rounded-lg">
@@ -1282,7 +1374,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap no-print">
                 {savedLessons.length > 1 && (
                   <button
                     onClick={() => setShowLessonHistory(!showLessonHistory)}
@@ -1327,7 +1419,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             
             {/* Lesson History Panel */}
             {showLessonHistory && (
-              <div className="mb-6 border border-gray-200 rounded-xl overflow-hidden">
+              <div className="mb-6 border border-gray-200 rounded-xl overflow-hidden no-print">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-700">Previous Lessons</h3>
                 </div>
@@ -1430,18 +1522,78 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 </div>
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none" id="printable-lesson">
                 <ReactMarkdown
                   components={{
                     h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mt-6 mb-4">{children}</h1>,
-                    h2: ({ children }) => <h2 className="text-xl font-bold text-gray-800 mt-6 mb-3">{children}</h2>,
-                    h3: ({ children }) => <h3 className="text-lg font-semibold text-gray-800 mt-4 mb-2">{children}</h3>,
-                    h4: ({ children }) => <h4 className="text-base font-semibold text-gray-700 mt-4 mb-2">{children}</h4>,
-                    p: ({ children }) => <p className="text-gray-700 mb-3">{children}</p>,
+                    h2: ({ children }) => {
+                      const text = String(children).toLowerCase();
+                      let borderColor = 'border-gray-200';
+                      let bgColor = 'bg-gray-50';
+                      let textColor = 'text-gray-800';
+                      if (text.includes('lesson plan')) { borderColor = 'border-emerald-300'; bgColor = 'bg-emerald-50'; textColor = 'text-emerald-800'; }
+                      return <h2 className={`text-xl font-bold ${textColor} mt-6 mb-3 p-3 rounded-lg ${bgColor} border-l-4 ${borderColor}`}>{children}</h2>;
+                    },
+                    h3: ({ children }) => {
+                      const text = String(children).toLowerCase();
+                      let borderColor = 'border-gray-300';
+                      let bgColor = 'bg-gray-50';
+                      let textColor = 'text-gray-800';
+                      if (text.includes('lesson plan')) { borderColor = 'border-emerald-400'; bgColor = 'bg-emerald-50'; textColor = 'text-emerald-900'; }
+                      return <h3 className={`text-lg font-semibold ${textColor} mt-4 mb-2 p-2 rounded-lg ${bgColor} border-l-4 ${borderColor}`}>{children}</h3>;
+                    },
+                    h4: ({ children }) => {
+                      const text = String(children).toLowerCase();
+                      let borderColor = 'border-gray-300';
+                      let bgColor = 'bg-white';
+                      let textColor = 'text-gray-700';
+                      let icon = '📋';
+                      if (text.includes('circle time') || text.includes('hook') || text.includes('introduction') && text.includes('1')) {
+                        borderColor = 'border-amber-400'; bgColor = 'bg-amber-50'; textColor = 'text-amber-800'; icon = '🎵';
+                      } else if (text.includes('attention autism') || text.includes('bucket') || text.includes('introduction')) {
+                        borderColor = 'border-blue-400'; bgColor = 'bg-blue-50'; textColor = 'text-blue-800'; icon = '🪣';
+                      } else if (text.includes('main') || text.includes('task') || text.includes('activity')) {
+                        borderColor = 'border-violet-400'; bgColor = 'bg-violet-50'; textColor = 'text-violet-800'; icon = '✏️';
+                      } else if (text.includes('continuous') || text.includes('practice') || text.includes('provision') || text.includes('consolidation')) {
+                        borderColor = 'border-teal-400'; bgColor = 'bg-teal-50'; textColor = 'text-teal-800'; icon = '🎮';
+                      } else if (text.includes('resource') || text.includes('checklist')) {
+                        borderColor = 'border-rose-400'; bgColor = 'bg-rose-50'; textColor = 'text-rose-800'; icon = '📦';
+                      } else if (text.includes('differentiation') || text.includes('entry point')) {
+                        borderColor = 'border-indigo-400'; bgColor = 'bg-indigo-50'; textColor = 'text-indigo-800'; icon = '🎯';
+                      }
+                      return <h4 className={`text-base font-semibold ${textColor} mt-5 mb-2 p-2.5 rounded-lg ${bgColor} border-l-4 ${borderColor} flex items-center gap-2`}><span>{icon}</span>{children}</h4>;
+                    },
+                    p: ({ children }) => <p className="text-gray-700 mb-3 leading-relaxed">{children}</p>,
                     ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
-                    li: ({ children }) => <li className="text-gray-700">{children}</li>,
-                    strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                    li: ({ children }) => {
+                      const text = String(children);
+                      // Style checklist items differently
+                      if (text.startsWith('[ ] ') || text.startsWith('[x] ')) {
+                        const checked = text.startsWith('[x] ');
+                        return <li className={`list-none -ml-5 flex items-center gap-2 ${checked ? 'text-emerald-700' : 'text-gray-700'}`}>
+                          <span className={`inline-flex items-center justify-center w-4 h-4 rounded border ${checked ? 'bg-emerald-100 border-emerald-400 text-emerald-600' : 'border-gray-300'}`}>
+                            {checked && <Check className="h-3 w-3" />}
+                          </span>
+                          {text.slice(4)}
+                        </li>;
+                      }
+                      // Highlight student-specific differentiation lines
+                      const studentMatch = text.match(/^\*\*([^*]+)\*\*:/);
+                      if (studentMatch) {
+                        return <li className="text-gray-700 bg-indigo-50/50 p-1.5 rounded-lg border-l-2 border-indigo-200 -ml-1">{children}</li>;
+                      }
+                      return <li className="text-gray-700">{children}</li>;
+                    },
+                    strong: ({ children }) => {
+                      const text = String(children).toLowerCase();
+                      let extraClass = 'text-gray-900';
+                      if (text.includes('differentiation') || text.includes('entry point')) extraClass = 'text-indigo-700';
+                      else if (text.includes('key language') || text.includes('visuals needed')) extraClass = 'text-blue-700';
+                      else if (text.includes('staff notes') || text.includes('activity')) extraClass = 'text-violet-700';
+                      else if (text.includes('curriculum') || text.includes('learning objective') || text.includes('aet focus') || text.includes('duration')) extraClass = 'text-emerald-700';
+                      return <strong className={`font-semibold ${extraClass}`}>{children}</strong>;
+                    },
                     hr: () => <hr className="my-6 border-gray-200" />,
                   }}
                 >
@@ -1452,7 +1604,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             
             {/* Refine Input */}
             {showRefineInput && !editingLesson && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="mt-6 pt-4 border-t border-gray-200 no-print">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <RefreshCw className="h-4 w-4 inline mr-1" />
                   What would you like to change?
@@ -1495,7 +1647,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
             {/* Lesson Action Buttons */}
             {!editingLesson && !showRefineInput && (
-              <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200">
+              <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200 no-print">
                 <button
                   onClick={generateVisualSchedule}
                   disabled={generatingVisuals}
@@ -1567,12 +1719,16 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       <p className="text-xs text-gray-500">Drag to reorder • Hover for options</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 no-print">
                     <button
                       onClick={() => {
                         setNewCardLabel('');
                         setCardSearchQuery('');
                         setCardSearchResults([]);
+                        setCardModalTab('search');
+                        setUploadCardName('');
+                        setUploadCardImage(null);
+                        fetchCustomCards();
                         setShowAddCardModal(true);
                       }}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors"
@@ -1754,80 +1910,245 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       </button>
                     </div>
 
-                    {/* Card label input */}
-                    <div className="mb-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Card Label</label>
-                      <input
-                        type="text"
-                        value={newCardLabel}
-                        onChange={(e) => setNewCardLabel(e.target.value)}
-                        placeholder="E.g., Wash Hands, Sit Down, Good Listening..."
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      />
-                    </div>
+                    {/* Card label input — shown for search & custom tabs */}
+                    {cardModalTab !== 'upload' && (
+                      <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Card Label</label>
+                        <input
+                          type="text"
+                          value={newCardLabel}
+                          onChange={(e) => setNewCardLabel(e.target.value)}
+                          placeholder="E.g., Wash Hands, Sit Down, Good Listening..."
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                        />
+                      </div>
+                    )}
 
-                    {/* Search bar */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={cardSearchQuery}
-                        onChange={(e) => {
-                          setCardSearchQuery(e.target.value);
-                          if (e.target.value.trim().length >= 2) {
-                            searchPictograms(e.target.value);
-                          } else {
-                            setCardSearchResults([]);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && cardSearchQuery.trim()) {
-                            searchPictograms(cardSearchQuery);
-                          }
-                        }}
-                        placeholder="Search pictograms... (e.g., happy, eat, book, toilet)"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      />
-                      {cardSearching && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-500 animate-spin" />
-                      )}
+                    {/* Tabs */}
+                    <div className="flex border-b border-gray-200 -mb-[1px]">
+                      <button
+                        onClick={() => setCardModalTab('search')}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                          cardModalTab === 'search'
+                            ? 'border-violet-500 text-violet-700'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        ARASAAC Search
+                      </button>
+                      <button
+                        onClick={() => setCardModalTab('custom')}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                          cardModalTab === 'custom'
+                            ? 'border-violet-500 text-violet-700'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" />
+                        Custom Cards{customCards.length > 0 && ` (${customCards.length})`}
+                      </button>
+                      <button
+                        onClick={() => setCardModalTab('upload')}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                          cardModalTab === 'upload'
+                            ? 'border-violet-500 text-violet-700'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Upload New
+                      </button>
                     </div>
                   </div>
 
-                  {/* Search results grid */}
+                  {/* Tab Content */}
                   <div className="flex-1 overflow-y-auto p-6">
-                    {cardSearchResults.length > 0 ? (
-                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                        {cardSearchResults.map((pic) => (
-                          <button
-                            key={pic.id}
-                            onClick={() => addManualCard(pic, newCardLabel || cardSearchQuery)}
-                            className="flex flex-col items-center p-2 border-2 border-gray-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all"
-                            title={pic.keywords.join(', ')}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={pic.url}
-                              alt={pic.keywords[0] || 'pictogram'}
-                              className="w-16 h-16 object-contain"
-                            />
-                            <span className="text-[10px] text-gray-500 mt-1 text-center truncate w-full">
-                              {pic.keywords[0] || ''}
-                            </span>
-                          </button>
-                        ))}
+
+                    {/* ARASAAC Search Tab */}
+                    {cardModalTab === 'search' && (
+                      <div>
+                        <div className="relative mb-4">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={cardSearchQuery}
+                            onChange={(e) => {
+                              setCardSearchQuery(e.target.value);
+                              if (e.target.value.trim().length >= 2) {
+                                searchPictograms(e.target.value);
+                              } else {
+                                setCardSearchResults([]);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && cardSearchQuery.trim()) {
+                                searchPictograms(cardSearchQuery);
+                              }
+                            }}
+                            placeholder="Search pictograms... (e.g., happy, eat, book, toilet)"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                          />
+                          {cardSearching && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-500 animate-spin" />
+                          )}
+                        </div>
+                        {cardSearchResults.length > 0 ? (
+                          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                            {cardSearchResults.map((pic) => (
+                              <button
+                                key={pic.id}
+                                onClick={() => addManualCard(pic, newCardLabel || cardSearchQuery)}
+                                className="flex flex-col items-center p-2 border-2 border-gray-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all"
+                                title={pic.keywords.join(', ')}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={pic.url}
+                                  alt={pic.keywords[0] || 'pictogram'}
+                                  className="w-16 h-16 object-contain"
+                                />
+                                <span className="text-[10px] text-gray-500 mt-1 text-center truncate w-full">
+                                  {pic.keywords[0] || ''}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : cardSearchQuery.trim().length >= 2 && !cardSearching ? (
+                          <div className="text-center py-12">
+                            <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500">No pictograms found for &ldquo;{cardSearchQuery}&rdquo;</p>
+                            <p className="text-xs text-gray-400 mt-1">Try a simpler word like &ldquo;sit&rdquo;, &ldquo;eat&rdquo;, &ldquo;happy&rdquo;</p>
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Search className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500">Search for a pictogram to add</p>
+                            <p className="text-xs text-gray-400 mt-1">Type at least 2 characters to search the ARASAAC database</p>
+                          </div>
+                        )}
                       </div>
-                    ) : cardSearchQuery.trim().length >= 2 && !cardSearching ? (
-                      <div className="text-center py-12">
-                        <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">No pictograms found for &ldquo;{cardSearchQuery}&rdquo;</p>
-                        <p className="text-xs text-gray-400 mt-1">Try a simpler word like &ldquo;sit&rdquo;, &ldquo;eat&rdquo;, &ldquo;happy&rdquo;</p>
+                    )}
+
+                    {/* Custom Cards Tab */}
+                    {cardModalTab === 'custom' && (
+                      <div>
+                        {customCards.length > 0 ? (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                            {customCards.map((card) => (
+                              <div key={card.id} className="group relative">
+                                <button
+                                  onClick={() => addCustomCardToSchedule(card)}
+                                  className="w-full flex flex-col items-center p-3 border-2 border-gray-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all"
+                                  title={`Add "${card.name}" to schedule`}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={card.imageData}
+                                    alt={card.name}
+                                    className="w-16 h-16 object-contain rounded"
+                                  />
+                                  <span className="text-xs font-medium text-gray-700 mt-2 text-center leading-tight">
+                                    {card.name}
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={() => deleteCustomCard(card.id)}
+                                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center text-xs hidden group-hover:flex hover:bg-red-600"
+                                  title="Delete custom card"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-sm text-gray-500">No custom cards yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Upload your own images in the &ldquo;Upload New&rdquo; tab</p>
+                            <button
+                              onClick={() => setCardModalTab('upload')}
+                              className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100"
+                            >
+                              <Upload className="h-3 w-3" />
+                              Upload a Card
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <Search className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-sm text-gray-500">Search for a pictogram to add</p>
-                        <p className="text-xs text-gray-400 mt-1">Type at least 2 characters to search the ARASAAC database</p>
+                    )}
+
+                    {/* Upload Tab */}
+                    {cardModalTab === 'upload' && (
+                      <div className="max-w-md mx-auto">
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Card Name *</label>
+                          <input
+                            type="text"
+                            value={uploadCardName}
+                            onChange={(e) => setUploadCardName(e.target.value)}
+                            placeholder="E.g., My Fidget Toy, Quiet Area, Token Board..."
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Image *</label>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                          />
+                          {uploadCardImage ? (
+                            <div className="relative border-2 border-violet-200 rounded-xl p-4 bg-violet-50 flex flex-col items-center">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={uploadCardImage}
+                                alt="Preview"
+                                className="w-32 h-32 object-contain rounded-lg"
+                              />
+                              <button
+                                onClick={() => { setUploadCardImage(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                                className="mt-2 text-xs text-red-500 hover:text-red-700"
+                              >
+                                Remove image
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-violet-400 hover:bg-violet-50 transition-colors"
+                            >
+                              <Upload className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">Click to select an image</p>
+                              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or GIF — max 2MB</p>
+                            </button>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={uploadCustomCard}
+                          disabled={!uploadCardName.trim() || !uploadCardImage || uploadingCard}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {uploadingCard ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              Save Custom Card
+                            </>
+                          )}
+                        </button>
+                        <p className="text-xs text-gray-400 mt-2 text-center">
+                          The card will be saved and available for all future visual schedules.
+                        </p>
                       </div>
                     )}
                   </div>

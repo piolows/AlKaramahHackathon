@@ -94,3 +94,14 @@ model Lesson {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
+
+// ============================================
+// CUSTOM CARD MODEL
+// Teacher-uploaded pictogram cards for visual schedules
+// ============================================
+model CustomCard {
+  id        String   @id @default(cuid())
+  name      String   // Card label / display name
+  imageData String   // Base64-encoded image data (data URI)
+  createdAt DateTime @default(now())
+}

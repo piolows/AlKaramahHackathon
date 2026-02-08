@@ -136,42 +136,103 @@ body {
   animation: fadeOutScale 0.4s ease-in forwards;
 }
 
-/* Print styles for visual schedule */
+/* Print styles — prints the lesson plan and visual schedule together */
 @media print {
-  /* Hide everything except the visual schedule */
+  /* Hide everything first */
   body * {
     visibility: hidden;
   }
   
-  .print-visual-schedule,
-  .print-visual-schedule * {
+  /* Show the printable content and all its children */
+  #printable-content,
+  #printable-content * {
     visibility: visible !important;
   }
   
-  .print-visual-schedule {
+  /* Position printable content for full-page print */
+  #printable-content {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
     border: none !important;
-    padding: 20px !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
   }
   
-  /* Ensure pictogram images print */
-  .print-visual-schedule img {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  /* Ensure colors print */
+  #printable-content * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
-  /* Make cards display nicely for print */
-  .print-visual-schedule button {
-    border: 2px solid #333 !important;
+  /* Hide buttons, action bars, and interactive elements when printing */
+  #printable-content button,
+  #printable-content [class*="group-hover"],
+  #printable-content .no-print {
+    display: none !important;
+  }
+  
+  /* Keep the lesson content header visible but hide action buttons in it */
+  #printable-content > div:first-child button {
+    display: none !important;
+  }
+  
+  /* But show the lesson title/meta info */
+  #printable-content > div:first-child > div:first-child {
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  /* Visual schedule cards: clean borders, no hover effects */
+  .print-visual-schedule {
+    border: 2px solid #e5e7eb !important;
+    border-radius: 12px !important;
+    page-break-inside: avoid;
+  }
+  
+  .print-visual-schedule div[draggable] {
+    border: 2px solid #374151 !important;
     background: white !important;
     cursor: default !important;
   }
   
-  /* Hide the remove indicator and hover effects */
-  .print-visual-schedule [class*="group-hover"] {
+  /* Ensure pictogram images print */
+  .print-visual-schedule img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Section headers keep their colors */
+  #printable-content h4 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    page-break-after: avoid;
+  }
+  
+  /* Avoid page breaks inside lesson sections */
+  #printable-content h2,
+  #printable-content h3,
+  #printable-content h4 {
+    page-break-after: avoid;
+  }
+  
+  #printable-content ul,
+  #printable-content ol {
+    page-break-inside: avoid;
+  }
+  
+  /* Visual schedule section should start on new page if needed */
+  #visual-schedule {
+    page-break-before: auto;
+    page-break-inside: avoid;
+  }
+  
+  /* Hide refine input, edit area when printing */
+  #printable-content textarea,
+  #printable-content input {
     display: none !important;
   }
 }
