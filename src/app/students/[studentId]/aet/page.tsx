@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
-  Target
+  Target,
+  SkipForward
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
@@ -339,6 +340,49 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
 
   const currentGoal = getCurrentGoal();
 
+  // Set a subcategory as the current goal by completing all preceding goals
+  const setAsCurrentGoal = async (targetSubcategoryId: string) => {
+    const updates: Record<string, SubcategoryProgress> = {};
+    let found = false;
+
+    for (const area of AET_FRAMEWORK.areas) {
+      for (const category of area.categories) {
+        for (const subcategory of category.subcategories) {
+          if (subcategory.id === targetSubcategoryId) {
+            found = true;
+            // Make sure the target itself is NOT completed (mark as in-progress if untouched)
+            if (!progress[subcategory.id] || progress[subcategory.id].completed) {
+              updates[subcategory.id] = {
+                level: progress[subcategory.id]?.level || 1,
+                completed: false,
+                plan: progress[subcategory.id]?.plan || null,
+              };
+            }
+            break;
+          }
+          // Mark all goals before the target as completed
+          if (!progress[subcategory.id]?.completed) {
+            updates[subcategory.id] = {
+              level: 4,
+              completed: true,
+              plan: progress[subcategory.id]?.plan || null,
+            };
+          }
+        }
+        if (found) break;
+      }
+      if (found) break;
+    }
+
+    // Apply all updates to state
+    setProgress(prev => ({ ...prev, ...updates }));
+
+    // Persist all updates
+    await Promise.all(
+      Object.entries(updates).map(([subId, data]) => saveProgress(subId, data))
+    );
+  };
+
   // Function to scroll to current goal
   const scrollToCurrentGoal = () => {
     if (!currentGoal) return;
@@ -552,7 +596,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                   <div 
                                     key={subcategory.id}
                                     id={`subcategory-${subcategory.id}`}
-                                    className={`rounded-lg border transition-all ${
+                                    className={`group/goal rounded-lg border transition-all ${
                                       isCurrentGoal 
                                         ? 'border-primary-300 bg-primary-50/50 ring-1 ring-primary-200' 
                                         : isCompleted 
@@ -593,27 +637,30 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                           </div>
                                         </div>
 
-                                        {/* Level Selector */}
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          {PROGRESSION_LEVELS.map((levelInfo) => (
-                                            <button
-                                              key={levelInfo.level}
-                                              onClick={() => updateLevel(subcategory.id, levelInfo.level)}
-                                              title={`${levelInfo.name} (${levelInfo.shortName})`}
-                                              className={`w-7 h-7 rounded-full text-[10px] font-bold transition-all ${
-                                                currentLevel >= levelInfo.level
-                                                  ? `${levelInfo.color} text-white`
-                                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                                              }`}
-                                            >
-                                              {levelInfo.shortName}
-                                            </button>
-                                          ))}
+                                        {/* Level Selector + Set as current goal */}
+                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                          <div className="flex items-center gap-1">
+                                            {PROGRESSION_LEVELS.map((levelInfo) => (
+                                              <button
+                                                key={levelInfo.level}
+                                                onClick={() => updateLevel(subcategory.id, levelInfo.level)}
+                                                title={`${levelInfo.name} (${levelInfo.shortName})`}
+                                                className={`w-7 h-7 rounded-full text-[10px] font-bold transition-all ${
+                                                  currentLevel >= levelInfo.level
+                                                    ? `${levelInfo.color} text-white`
+                                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                }`}
+                                              >
+                                                {levelInfo.shortName}
+                                              </button>
+                                            ))}
+                                          </div>
                                         </div>
                                       </div>
 
                                       {/* Current Level Info & Plan Button */}
-                                      <div className="mt-2 ml-7 flex items-center gap-2">
+                                      <div className="mt-2 ml-7 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
                                         {currentLevel > 0 && (
                                           <>
                                             <span className="text-xs text-gray-500">
@@ -638,6 +685,17 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               <ChevronDown className="h-3 w-3 ml-1" />
                                           )}
                                         </button>
+                                        </div>
+                                        {!isCurrentGoal && !isCompleted && (
+                                          <button
+                                            onClick={() => setAsCurrentGoal(subcategory.id)}
+                                            className="hidden group-hover/goal:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-full hover:bg-primary-100 transition-all"
+                                            title="Complete all goals before this one"
+                                          >
+                                            <SkipForward className="h-3 w-3" />
+                                            Set as current goal
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
 

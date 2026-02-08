@@ -1,26 +1,25 @@
 - Components / Layout
-- Fix AI output not completing (check)
+- Fix AI output not completing (check) (done maybe)
 - Fix regenerate to use last provided optional instructions
-- Dark mode
+- Dark mode (no)
 - Color scheme, theme, style / UI UX flow / Unfuglination
 	- Create CSS variables for main colors of the site and text
 	- Proficiency stuff
 - Profile page; customized roles/permissions
-- Consultation page for teachers (Instead of edit diagnoses)
-	- Maybe dummy auth
-- Host
-- Print stuff
+- Print stuff (refine)
 - Phone view (seems to be fine)
 - Further test prompting
 	- Maybe change LLM
-- Admin page: extra tab for adding diagnoses options
-- Goals accomplished per day display
+	- Add more API keys
+- Admin page: extra tab for adding diagnoses options (mm idk)
+- Goals accomplished per day display (idk bout dat)
 - Refine prompt
 	- Take into account grade and British curriculum
 	- Never incorporate electronic devices for students
 - Knowledge base; store info/feedback on whatever goals, resources, etc. Viewable by any teacher
+	- Prompt to add info when marking a goal complete
 - Refine individual plan prompts; consider classroom dynamics blablabla
 - Visual feedback in lesson actions (refine/delete)
+- Redo landing page
 
-
-- RAG / Flashcards
+- RAG / Flashcards (some stuff done)

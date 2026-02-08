@@ -2296,7 +2296,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                   title="Jump to current goal"
                                 >
                                   <SkipForward className="h-3 w-3" />
-                                  Current
+                                  Jump to Current Goal
                                 </button>
                               )}
                               <button
