@@ -18,6 +18,7 @@ export async function GET(
         lessonTopic: true,
         learningObjective: true,
         content: true,
+        visualSchedule: true,
         createdAt: true,
       },
     });

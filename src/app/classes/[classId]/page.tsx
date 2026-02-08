@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { 
   ChevronLeft,
@@ -31,7 +31,12 @@ import {
   Printer,
   History,
   Calendar,
-  Clock
+  Clock,
+  ImageIcon,
+  ArrowRight,
+  Plus,
+  Search,
+  GripVertical
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
@@ -81,6 +86,7 @@ interface SavedLesson {
   lessonTopic: string;
   learningObjective: string;
   content: string;
+  visualSchedule: string | null;
   createdAt: string;
 }
 
@@ -136,6 +142,27 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [showRefineInput, setShowRefineInput] = useState(false);
   const [refineFeedback, setRefineFeedback] = useState('');
   const [refiningLesson, setRefiningLesson] = useState(false);
+  
+  // State for visual schedule
+  const [visualSteps, setVisualSteps] = useState<{
+    label: string;
+    searchWord: string;
+    alternativeWords?: string[];
+    pictogramId: number | null;
+    pictogramUrl: string | null;
+  }[] | null>(null);
+  const [generatingVisuals, setGeneratingVisuals] = useState(false);
+  const [visualError, setVisualError] = useState<string | null>(null);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [cardSearchQuery, setCardSearchQuery] = useState('');
+  const [cardSearchResults, setCardSearchResults] = useState<{ id: number; url: string; keywords: string[] }[]>([]);
+  const [cardSearching, setCardSearching] = useState(false);
+  const [newCardLabel, setNewCardLabel] = useState('');
+  const [regeneratingCardIndex, setRegeneratingCardIndex] = useState<number | null>(null);
+  const [editingCardIndex, setEditingCardIndex] = useState<number | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounter = useRef<Record<number, number>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -718,6 +745,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     if (!currentLessonId) {
       // Unsaved lesson — just clear it
       setGeneratedLesson(null);
+      setVisualSteps(null);
       return;
     }
 
@@ -735,11 +763,195 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           setGeneratedLesson(null);
           setCurrentLessonId(null);
           setShowLessonHistory(false);
+          setVisualSteps(null);
         }
       }
     } catch (error) {
       console.error('Error deleting lesson:', error);
     }
+  };
+
+  // Save visual schedule to database
+  const saveVisualSchedule = useCallback(async (steps: typeof visualSteps) => {
+    if (!currentLessonId || !steps) return;
+    try {
+      await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visualSchedule: JSON.stringify(steps) }),
+      });
+      // Update local savedLessons cache
+      setSavedLessons(prev => prev.map(l =>
+        l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(steps) } : l
+      ));
+    } catch (error) {
+      console.error('Error saving visual schedule:', error);
+    }
+  }, [currentLessonId, classId]);
+
+  // Generate visual schedule from lesson
+  const generateVisualSchedule = async () => {
+    if (!generatedLesson) return;
+
+    setGeneratingVisuals(true);
+    setVisualError(null);
+    try {
+      const response = await fetch('/api/generate-visuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonContent: generatedLesson }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to generate visuals');
+
+      setVisualSteps(data.steps);
+      // Save to DB
+      if (currentLessonId) {
+        await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visualSchedule: JSON.stringify(data.steps) }),
+        });
+        setSavedLessons(prev => prev.map(l =>
+          l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(data.steps) } : l
+        ));
+      }
+    } catch (error) {
+      console.error('Error generating visuals:', error);
+      setVisualError(error instanceof Error ? error.message : 'Failed to generate visual schedule');
+    } finally {
+      setGeneratingVisuals(false);
+    }
+  };
+
+  // Remove a step from the visual schedule
+  const removeVisualStep = (index: number) => {
+    setVisualSteps(prev => {
+      if (!prev) return null;
+      const updated = prev.filter((_, i) => i !== index);
+      saveVisualSchedule(updated);
+      return updated;
+    });
+  };
+
+  // Regenerate a single card — cycle to next ARASAAC result
+  const regenerateCard = async (index: number) => {
+    if (!visualSteps) return;
+    const step = visualSteps[index];
+    setRegeneratingCardIndex(index);
+    try {
+      const res = await fetch(`/api/pictogram-search?q=${encodeURIComponent(step.searchWord)}&limit=10`);
+      const data = await res.json();
+      const results = data.results || [];
+      
+      if (results.length <= 1) {
+        // Try alternative words
+        for (const alt of (step.alternativeWords || [])) {
+          const altRes = await fetch(`/api/pictogram-search?q=${encodeURIComponent(alt)}&limit=10`);
+          const altData = await altRes.json();
+          if (altData.results?.length > 0) {
+            results.push(...altData.results);
+          }
+        }
+      }
+
+      // Find current index and pick next one
+      const currentIdx = results.findIndex((r: { id: number }) => r.id === step.pictogramId);
+      const nextIdx = (currentIdx + 1) % results.length;
+      const next = results[nextIdx];
+
+      if (next && next.id !== step.pictogramId) {
+        const updated = [...visualSteps];
+        updated[index] = { ...step, pictogramId: next.id, pictogramUrl: next.url };
+        setVisualSteps(updated);
+        saveVisualSchedule(updated);
+      }
+    } catch (error) {
+      console.error('Error regenerating card:', error);
+    } finally {
+      setRegeneratingCardIndex(null);
+    }
+  };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    dragCounter.current[index] = (dragCounter.current[index] || 0) + 1;
+    if (index !== draggedIndex) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (index: number) => {
+    dragCounter.current[index] = (dragCounter.current[index] || 0) - 1;
+    if (dragCounter.current[index] <= 0) {
+      dragCounter.current[index] = 0;
+      if (dragOverIndex === index) {
+        setDragOverIndex(null);
+      }
+    }
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex || !visualSteps) return;
+    const updated = [...visualSteps];
+    const [dragged] = updated.splice(draggedIndex, 1);
+    updated.splice(dropIndex, 0, dragged);
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    dragCounter.current = {};
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    dragCounter.current = {};
+  };
+
+  // Search pictograms for manual card adding
+  const searchPictograms = async (query: string) => {
+    if (!query.trim()) {
+      setCardSearchResults([]);
+      return;
+    }
+    setCardSearching(true);
+    try {
+      const res = await fetch(`/api/pictogram-search?q=${encodeURIComponent(query.trim())}&limit=24`);
+      const data = await res.json();
+      setCardSearchResults(data.results || []);
+    } catch {
+      setCardSearchResults([]);
+    } finally {
+      setCardSearching(false);
+    }
+  };
+
+  // Add a card manually from picker
+  const addManualCard = (pictogram: { id: number; url: string }, label: string) => {
+    const newStep = {
+      label: label || 'New Step',
+      searchWord: label.toLowerCase(),
+      pictogramId: pictogram.id,
+      pictogramUrl: pictogram.url,
+    };
+    const updated = [...(visualSteps || []), newStep];
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
+    setShowAddCardModal(false);
+    setCardSearchQuery('');
+    setCardSearchResults([]);
+    setNewCardLabel('');
+  };
+
+  // Print visual schedule
+  const printVisualSchedule = () => {
+    window.print();
   };
 
   if (loading) {
@@ -1011,6 +1223,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 onClick={() => {
                   setGeneratedLesson(lastLesson.content);
                   setCurrentLessonId(lastLesson.id);
+                  setVisualSteps(lastLesson.visualSchedule ? JSON.parse(lastLesson.visualSchedule) : null);
                 }}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
@@ -1102,6 +1315,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     setGeneratedLesson(null);
                     setCurrentLessonId(null);
                     setShowLessonHistory(false);
+                    setVisualSteps(null);
                   }}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Hide lesson"
@@ -1129,6 +1343,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       onClick={() => {
                         setGeneratedLesson(lesson.content);
                         setCurrentLessonId(lesson.id);
+                        setVisualSteps(lesson.visualSchedule ? JSON.parse(lesson.visualSchedule) : null);
                       }}
                     >
                       <div className="flex-1 min-w-0">
@@ -1282,6 +1497,23 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {!editingLesson && !showRefineInput && (
               <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200">
                 <button
+                  onClick={generateVisualSchedule}
+                  disabled={generatingVisuals}
+                  className="inline-flex items-center px-3 py-2 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors disabled:opacity-50"
+                >
+                  {generatingVisuals ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      Generate Visual Schedule
+                    </>
+                  )}
+                </button>
+                <button
                   onClick={() => setShowRefineInput(true)}
                   className="inline-flex items-center px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
                 >
@@ -1305,6 +1537,301 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <Trash2 className="h-4 w-4 mr-1" />
                   Delete
                 </button>
+              </div>
+            )}
+
+            {/* Visual Schedule Error */}
+            {visualError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-700 font-medium">Visual Schedule Error</p>
+                  <p className="text-xs text-red-600">{visualError}</p>
+                </div>
+                <button onClick={() => setVisualError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Visual Schedule Display */}
+            {visualSteps && visualSteps.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-violet-200" id="visual-schedule">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-violet-100 rounded-lg">
+                      <ImageIcon className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Visual Schedule</h3>
+                      <p className="text-xs text-gray-500">Drag to reorder • Hover for options</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setNewCardLabel('');
+                        setCardSearchQuery('');
+                        setCardSearchResults([]);
+                        setShowAddCardModal(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Card
+                    </button>
+                    <button
+                      onClick={generateVisualSchedule}
+                      disabled={generatingVisuals}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${generatingVisuals ? 'animate-spin' : ''}`} />
+                      Regenerate All
+                    </button>
+                    <button
+                      onClick={printVisualSchedule}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                    >
+                      <Printer className="h-3 w-3" />
+                      Print
+                    </button>
+                    <button
+                      onClick={() => setVisualSteps(null)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Hide visual schedule"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* The Visual Strip */}
+                <div className="bg-white border-2 border-violet-100 rounded-xl p-6 print-visual-schedule">
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {visualSteps.map((step, index) => (
+                      <div key={`${step.label}-${index}`} className="flex items-center gap-1">
+                        <div
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragEnter={() => handleDragEnter(index)}
+                          onDragLeave={() => handleDragLeave(index)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => handleDrop(index)}
+                          onDragEnd={handleDragEnd}
+                          className={`group relative flex flex-col items-center w-28 p-3 bg-white border-2 rounded-xl transition-all cursor-grab active:cursor-grabbing ${
+                            draggedIndex === index
+                              ? 'opacity-40 border-violet-400 scale-95'
+                              : dragOverIndex === index
+                              ? 'border-violet-500 bg-violet-50 scale-105 shadow-lg'
+                              : 'border-gray-200 hover:border-violet-300'
+                          }`}
+                        >
+                          {/* Drag handle */}
+                          <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <GripVertical className="h-3 w-3 text-gray-300" />
+                          </div>
+
+                          {/* Action buttons on hover */}
+                          <div className="absolute -top-2 -right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); regenerateCard(index); }}
+                              disabled={regeneratingCardIndex === index}
+                              className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
+                              title="Try different picture"
+                            >
+                              {regeneratingCardIndex === index ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3 w-3" />
+                              )}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeVisualStep(index); }}
+                              className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                              title="Remove card"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          
+                          {/* Pictogram */}
+                          <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
+                            {step.pictogramUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img 
+                                src={step.pictogramUrl}
+                                alt={step.label}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                <ImageIcon className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Label — click to edit */}
+                          {editingCardIndex === index ? (
+                            <input
+                              autoFocus
+                              type="text"
+                              defaultValue={step.label}
+                              className="text-xs font-bold text-gray-800 text-center leading-tight w-full bg-violet-50 border border-violet-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-violet-400"
+                              onBlur={(e) => {
+                                const newLabel = e.target.value.trim();
+                                setEditingCardIndex(null);
+                                if (newLabel && newLabel !== step.label && visualSteps) {
+                                  const updated = [...visualSteps];
+                                  updated[index] = { ...updated[index], label: newLabel };
+                                  setVisualSteps(updated);
+                                  saveVisualSchedule(updated);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                if (e.key === 'Escape') setEditingCardIndex(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onDragStart={(e) => e.preventDefault()}
+                            />
+                          ) : (
+                            <span
+                              className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
+                              onClick={(e) => { e.stopPropagation(); setEditingCardIndex(index); }}
+                              title="Click to rename"
+                            >
+                              {step.label}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Arrow between steps */}
+                        {index < visualSteps.length - 1 && (
+                          <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* ARASAAC Attribution */}
+                  <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+                    <p className="text-[10px] text-gray-400">
+                      Pictograms by{' '}
+                      <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                        ARASAAC
+                      </a>
+                      {' '}— Gobierno de Aragón. Licensed under{' '}
+                      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                        CC BY-NC-SA 4.0
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Card Modal */}
+            {showAddCardModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col">
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-violet-100 rounded-lg">
+                          <Plus className="h-5 w-5 text-violet-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Add Visual Card</h3>
+                      </div>
+                      <button
+                        onClick={() => setShowAddCardModal(false)}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Card label input */}
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Card Label</label>
+                      <input
+                        type="text"
+                        value={newCardLabel}
+                        onChange={(e) => setNewCardLabel(e.target.value)}
+                        placeholder="E.g., Wash Hands, Sit Down, Good Listening..."
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    {/* Search bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={cardSearchQuery}
+                        onChange={(e) => {
+                          setCardSearchQuery(e.target.value);
+                          if (e.target.value.trim().length >= 2) {
+                            searchPictograms(e.target.value);
+                          } else {
+                            setCardSearchResults([]);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && cardSearchQuery.trim()) {
+                            searchPictograms(cardSearchQuery);
+                          }
+                        }}
+                        placeholder="Search pictograms... (e.g., happy, eat, book, toilet)"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      />
+                      {cardSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-500 animate-spin" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Search results grid */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    {cardSearchResults.length > 0 ? (
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                        {cardSearchResults.map((pic) => (
+                          <button
+                            key={pic.id}
+                            onClick={() => addManualCard(pic, newCardLabel || cardSearchQuery)}
+                            className="flex flex-col items-center p-2 border-2 border-gray-200 rounded-xl hover:border-violet-500 hover:bg-violet-50 transition-all"
+                            title={pic.keywords.join(', ')}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={pic.url}
+                              alt={pic.keywords[0] || 'pictogram'}
+                              className="w-16 h-16 object-contain"
+                            />
+                            <span className="text-[10px] text-gray-500 mt-1 text-center truncate w-full">
+                              {pic.keywords[0] || ''}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : cardSearchQuery.trim().length >= 2 && !cardSearching ? (
+                      <div className="text-center py-12">
+                        <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500">No pictograms found for &ldquo;{cardSearchQuery}&rdquo;</p>
+                        <p className="text-xs text-gray-400 mt-1">Try a simpler word like &ldquo;sit&rdquo;, &ldquo;eat&rdquo;, &ldquo;happy&rdquo;</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Search className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500">Search for a pictogram to add</p>
+                        <p className="text-xs text-gray-400 mt-1">Type at least 2 characters to search the ARASAAC database</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

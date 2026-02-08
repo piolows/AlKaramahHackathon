@@ -31,24 +31,29 @@ export async function PATCH(
   try {
     const { lessonId } = await params;
     const body = await request.json();
-    const { content } = body;
+    const { content, visualSchedule } = body;
 
-    if (!content) {
+    if (!content && visualSchedule === undefined) {
       return NextResponse.json(
-        { error: 'Content is required' },
+        { error: 'Content or visualSchedule is required' },
         { status: 400 }
       );
     }
 
+    const updateData: { content?: string; visualSchedule?: string | null } = {};
+    if (content) updateData.content = content;
+    if (visualSchedule !== undefined) updateData.visualSchedule = visualSchedule;
+
     const lesson = await prisma.lesson.update({
       where: { id: lessonId },
-      data: { content },
+      data: updateData,
       select: {
         id: true,
         curriculumArea: true,
         lessonTopic: true,
         learningObjective: true,
         content: true,
+        visualSchedule: true,
         createdAt: true,
       },
     });

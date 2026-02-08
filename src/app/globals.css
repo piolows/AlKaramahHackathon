@@ -135,3 +135,43 @@ body {
 .animate-fade-out-scale {
   animation: fadeOutScale 0.4s ease-in forwards;
 }
+
+/* Print styles for visual schedule */
+@media print {
+  /* Hide everything except the visual schedule */
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-visual-schedule,
+  .print-visual-schedule * {
+    visibility: visible !important;
+  }
+  
+  .print-visual-schedule {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    padding: 20px !important;
+  }
+  
+  /* Ensure pictogram images print */
+  .print-visual-schedule img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Make cards display nicely for print */
+  .print-visual-schedule button {
+    border: 2px solid #333 !important;
+    background: white !important;
+    cursor: default !important;
+  }
+  
+  /* Hide the remove indicator and hover effects */
+  .print-visual-schedule [class*="group-hover"] {
+    display: none !important;
+  }
+}

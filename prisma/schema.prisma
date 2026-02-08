@@ -89,6 +89,7 @@ model Lesson {
   learningObjective String   // The single learning intention
   additionalNotes   String?  // Optional teacher notes
   content           String   // The full generated lesson plan (markdown)
+  visualSchedule    String?  // JSON string of visual schedule steps
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
