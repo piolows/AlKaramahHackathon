@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { ChevronRight, LucideIcon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 interface BreadcrumbItem {
   label: string;
@@ -11,14 +14,16 @@ interface BreadcrumbProps {
 }
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
+  const { t } = useLanguage();
+
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+    <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6 rtl:space-x-reverse">
       <Link href="/" className="hover:text-primary-600 transition-colors">
-        Home
+        {t('breadcrumb.home')}
       </Link>
       {items.map((item, index) => (
-        <span key={index} className="flex items-center space-x-2">
-          <ChevronRight className="h-4 w-4" />
+        <span key={index} className="flex items-center space-x-2 rtl:space-x-reverse">
+          <ChevronRight className="h-4 w-4 rtl:rotate-180" />
           {item.href ? (
             <Link href={item.href} className="hover:text-primary-600 transition-colors">
               {item.label}

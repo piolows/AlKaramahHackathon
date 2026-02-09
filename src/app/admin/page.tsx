@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  ArrowLeft, 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  Users, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Plus,
+  Pencil,
+  Trash2,
+  Users,
   BookOpen,
   Save,
   X,
@@ -15,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components'
+import { useLanguage } from '@/lib/i18n'
 
 interface Class {
   id: string
@@ -45,6 +47,7 @@ interface Student {
 type Tab = 'classes' | 'students'
 
 export default function AdminPage() {
+  const { t, locale } = useLanguage()
   const [activeTab, setActiveTab] = useState<Tab>('classes')
   const [classes, setClasses] = useState<Class[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -82,6 +85,8 @@ export default function AdminPage() {
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'class' | 'student', id: string, name: string } | null>(null)
 
+  const BackArrow = locale === 'ar' ? ArrowRight : ArrowLeft
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -107,7 +112,7 @@ export default function AdminPage() {
       setClasses(classesData)
       setStudents(studentsData)
     } catch (err) {
-      setError('Failed to load data. Please try again.')
+      setError(t('adminPage.failedToLoad'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -161,7 +166,7 @@ export default function AdminPage() {
   async function deleteClass(id: string) {
     try {
       const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' })
-      
+
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to delete class')
@@ -258,7 +263,7 @@ export default function AdminPage() {
   async function deleteStudent(id: string) {
     try {
       const res = await fetch(`/api/students/${id}`, { method: 'DELETE' })
-      
+
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to delete student')
@@ -281,15 +286,15 @@ export default function AdminPage() {
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4">
-            <Link 
-              href="/classes" 
+            <Link
+              href="/classes"
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <BackArrow className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-600">Manage classes and students</p>
+              <h1 className="text-2xl font-bold text-gray-900">{t('adminPage.title')}</h1>
+              <p className="text-sm text-gray-600">{t('adminPage.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -314,7 +319,7 @@ export default function AdminPage() {
             }`}
           >
             <BookOpen className="h-5 w-5" />
-            Classes ({classes.length})
+            {t('adminPage.classesTab')} ({classes.length})
           </button>
           <button
             onClick={() => setActiveTab('students')}
@@ -325,7 +330,7 @@ export default function AdminPage() {
             }`}
           >
             <Users className="h-5 w-5" />
-            Students ({students.length})
+            {t('adminPage.studentsTab')} ({students.length})
           </button>
         </div>
 
@@ -333,19 +338,19 @@ export default function AdminPage() {
         {activeTab === 'classes' && (
           <div className="bg-white rounded-xl shadow-sm border">
             <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('adminPage.classesTab')}</h2>
               <button
                 onClick={() => openClassForm()}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Add Class
+                {t('adminPage.addClass')}
               </button>
             </div>
             <div className="divide-y">
               {classes.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
-                  No classes yet. Click "Add Class" to create one.
+                  {t('adminPage.noClassesYet')}
                 </div>
               ) : (
                 classes.map(cls => (
@@ -353,23 +358,25 @@ export default function AdminPage() {
                     <div>
                       <h3 className="font-medium text-gray-900">{cls.name}</h3>
                       <p className="text-sm text-gray-600">
-                        {cls.description || 'No description'}
+                        {cls.description || t('common.noDescription')}
                         {cls.ageRange && ` • ${cls.ageRange}`}
                       </p>
-                      <p className="text-sm text-primary-600">{cls.studentCount} student{cls.studentCount !== 1 ? 's' : ''}</p>
+                      <p className="text-sm text-primary-600">
+                        {cls.studentCount} {cls.studentCount !== 1 ? t('adminPage.studentPlural') : t('adminPage.student')}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openClassForm(cls)}
                         className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="Edit class"
+                        title={t('adminPage.editClass')}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setDeleteConfirm({ type: 'class', id: cls.id, name: cls.name })}
                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete class"
+                        title={t('adminPage.deleteClass')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -385,25 +392,25 @@ export default function AdminPage() {
         {activeTab === 'students' && (
           <div className="bg-white rounded-xl shadow-sm border">
             <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Students</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('adminPage.studentsTab')}</h2>
               <button
                 onClick={() => openStudentForm()}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 disabled={classes.length === 0}
               >
                 <UserPlus className="h-4 w-4" />
-                Add Student
+                {t('adminPage.addStudent')}
               </button>
             </div>
             {classes.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
-                Create a class first before adding students.
+                {t('adminPage.createClassFirst')}
               </div>
             ) : (
               <div className="divide-y">
                 {students.length === 0 ? (
                   <div className="p-8 text-center text-gray-500">
-                    No students yet. Click "Add Student" to create one.
+                    {t('adminPage.noStudentsYet')}
                   </div>
                 ) : (
                   students.map(student => (
@@ -413,12 +420,12 @@ export default function AdminPage() {
                           {student.firstName} {student.lastName}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {student.className} • Born: {student.dateOfBirth}
+                          {student.className} • {t('adminPage.born')}: {student.dateOfBirth}
                         </p>
                         {student.diagnoses.length > 0 && (
                           <p className="text-sm text-gray-500">
                             {student.diagnoses.slice(0, 2).join(', ')}
-                            {student.diagnoses.length > 2 && ` +${student.diagnoses.length - 2} more`}
+                            {student.diagnoses.length > 2 && ` +${student.diagnoses.length - 2} ${t('adminPage.more')}`}
                           </p>
                         )}
                       </div>
@@ -426,21 +433,21 @@ export default function AdminPage() {
                         <Link
                           href={`/students/${student.id}`}
                           className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="View profile"
+                          title={t('adminPage.viewProfile')}
                         >
                           <Users className="h-4 w-4" />
                         </Link>
                         <button
                           onClick={() => openStudentForm(student)}
                           className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Edit student"
+                          title={t('adminPage.editStudent')}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setDeleteConfirm({ type: 'student', id: student.id, name: `${student.firstName} ${student.lastName}` })}
                           className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete student"
+                          title={t('adminPage.deleteStudent')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -460,7 +467,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
               <h3 className="text-lg font-semibold">
-                {editingClass ? 'Edit Class' : 'Add New Class'}
+                {editingClass ? t('adminPage.editClassTitle') : t('adminPage.addNewClass')}
               </h3>
               <button
                 onClick={() => setShowClassForm(false)}
@@ -472,38 +479,38 @@ export default function AdminPage() {
             <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Class Name *
+                  {t('adminPage.classNameRequired')}
                 </label>
                 <input
                   type="text"
                   value={classForm.name}
                   onChange={e => setClassForm({ ...classForm, name: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Sunshine Room"
+                  placeholder={t('adminPage.classNamePlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                  {t('adminPage.description')}
                 </label>
                 <textarea
                   value={classForm.description}
                   onChange={e => setClassForm({ ...classForm, description: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   rows={3}
-                  placeholder="Brief description of the class..."
+                  placeholder={t('adminPage.descriptionPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Age Range
+                  {t('adminPage.ageRange')}
                 </label>
                 <input
                   type="text"
                   value={classForm.ageRange}
                   onChange={e => setClassForm({ ...classForm, ageRange: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Key Stage 1 (Ages 5-7)"
+                  placeholder={t('adminPage.ageRangePlaceholder')}
                 />
               </div>
             </div>
@@ -512,14 +519,14 @@ export default function AdminPage() {
                 onClick={() => setShowClassForm(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={saveClass}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Save className="h-4 w-4" />
-                {editingClass ? 'Save Changes' : 'Create Class'}
+                {editingClass ? t('adminPage.saveChanges') : t('adminPage.createClass')}
               </button>
             </div>
           </div>
@@ -532,7 +539,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
               <h3 className="text-lg font-semibold">
-                {editingStudent ? 'Edit Student' : 'Add New Student'}
+                {editingStudent ? t('adminPage.editStudentTitle') : t('adminPage.addNewStudent')}
               </h3>
               <button
                 onClick={() => setShowStudentForm(false)}
@@ -545,7 +552,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name *
+                    {t('adminPage.firstName')}
                   </label>
                   <input
                     type="text"
@@ -556,7 +563,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name *
+                    {t('adminPage.lastName')}
                   </label>
                   <input
                     type="text"
@@ -569,7 +576,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth *
+                    {t('adminPage.dateOfBirth')}
                   </label>
                   <input
                     type="date"
@@ -580,134 +587,134 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Class *
+                    {t('adminPage.class')}
                   </label>
                   <select
                     value={studentForm.classId}
                     onChange={e => setStudentForm({ ...studentForm, classId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="">Select a class...</option>
+                    <option value="">{t('adminPage.selectClass')}</option>
                     {classes.map(cls => (
                       <option key={cls.id} value={cls.id}>{cls.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
-              
+
               <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-900 mb-3">Profile Information</h4>
+                <h4 className="font-medium text-gray-900 mb-3">{t('adminPage.profileInformation')}</h4>
                 <p className="text-sm text-gray-500 mb-4">
-                  Separate multiple items with commas
+                  {t('adminPage.separateWithCommas')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Diagnoses
+                  {t('adminPage.diagnoses')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.diagnoses}
                   onChange={e => setStudentForm({ ...studentForm, diagnoses: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Autism Spectrum Disorder, ADHD"
+                  placeholder={t('adminPage.diagnosesPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Strengths
+                  {t('adminPage.strengths')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.strengths}
                   onChange={e => setStudentForm({ ...studentForm, strengths: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Visual learner, Good memory"
+                  placeholder={t('adminPage.strengthsPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Challenges
+                  {t('adminPage.challenges')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.challenges}
                   onChange={e => setStudentForm({ ...studentForm, challenges: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Verbal communication, Transitions"
+                  placeholder={t('adminPage.challengesPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Interests
+                  {t('adminPage.interests')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.interests}
                   onChange={e => setStudentForm({ ...studentForm, interests: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Trains, Puzzles, Music"
+                  placeholder={t('adminPage.interestsPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Communication Style
+                  {t('adminPage.communicationStyle')}
                 </label>
                 <textarea
                   value={studentForm.communicationStyle}
                   onChange={e => setStudentForm({ ...studentForm, communicationStyle: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   rows={2}
-                  placeholder="How does this student communicate?"
+                  placeholder={t('adminPage.communicationStylePlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sensory Needs
+                  {t('adminPage.sensoryNeeds')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.sensoryNeeds}
                   onChange={e => setStudentForm({ ...studentForm, sensoryNeeds: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Sensitive to loud sounds, Seeks deep pressure"
+                  placeholder={t('adminPage.sensoryNeedsPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Support Strategies
+                  {t('adminPage.supportStrategies')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.supportStrategies}
                   onChange={e => setStudentForm({ ...studentForm, supportStrategies: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Visual schedules, Timers for transitions"
+                  placeholder={t('adminPage.supportStrategiesPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Triggers
+                  {t('adminPage.triggers')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.triggers}
                   onChange={e => setStudentForm({ ...studentForm, triggers: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Sudden loud noises, Schedule changes"
+                  placeholder={t('adminPage.triggersPlaceholder')}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Calming Strategies
+                  {t('adminPage.calmingStrategies')}
                 </label>
                 <input
                   type="text"
                   value={studentForm.calmingStrategies}
                   onChange={e => setStudentForm({ ...studentForm, calmingStrategies: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="e.g., Music with headphones, Quiet corner time"
+                  placeholder={t('adminPage.calmingStrategiesPlaceholder')}
                 />
               </div>
             </div>
@@ -716,14 +723,14 @@ export default function AdminPage() {
                 onClick={() => setShowStudentForm(false)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={saveStudent}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 <Save className="h-4 w-4" />
-                {editingStudent ? 'Save Changes' : 'Create Student'}
+                {editingStudent ? t('adminPage.saveChanges') : t('adminPage.createStudent')}
               </button>
             </div>
           </div>
@@ -735,16 +742,16 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
             <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold text-red-600">Confirm Delete</h3>
+              <h3 className="text-lg font-semibold text-red-600">{t('adminPage.confirmDelete')}</h3>
             </div>
             <div className="p-4">
               <p className="text-gray-700">
-                Are you sure you want to delete {deleteConfirm.type === 'class' ? 'class' : 'student'}{' '}
+                {deleteConfirm.type === 'class' ? t('adminPage.confirmDeleteClass') : t('adminPage.confirmDeleteStudent')}{' '}
                 <strong>{deleteConfirm.name}</strong>?
               </p>
               {deleteConfirm.type === 'student' && (
                 <p className="text-sm text-gray-500 mt-2">
-                  This will also delete all progress records for this student.
+                  {t('adminPage.deleteProgressWarning')}
                 </p>
               )}
             </div>
@@ -753,7 +760,7 @@ export default function AdminPage() {
                 onClick={() => setDeleteConfirm(null)}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -766,7 +773,7 @@ export default function AdminPage() {
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>

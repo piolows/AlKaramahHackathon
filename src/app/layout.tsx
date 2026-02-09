@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { 
-  Geist, 
+import {
+  Geist,
   Geist_Mono,
   Noto_Serif,
   PT_Serif,
   Montserrat,
   Cabin,
-  Merriweather_Sans
+  Merriweather_Sans,
+  Noto_Sans_Arabic
 } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { LanguageProvider } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,6 +50,12 @@ const merriweatherSans = Merriweather_Sans({
   subsets: ["latin"],
 });
 
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "TrainTrack - Special Education Resource Hub",
   description: "Empowering teachers of autistic children with personalized learning plans based on the AET Progression Framework",
@@ -61,13 +69,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} ${notoSansArabic.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
       >
-        <Header />
-        <main className="flex-1">
-          {children}
-        </main>
-        <Footer />
+        <LanguageProvider>
+          <Header />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

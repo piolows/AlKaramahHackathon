@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { Train, Heart } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 export default function Footer() {
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -20,15 +24,15 @@ export default function Footer() {
           {/* Tagline */}
           <div className="flex items-center gap-2 text-sm">
             <Heart className="h-4 w-4 text-red-400" />
-            <span>Built with love for special education teachers</span>
+            <span>{t('footer.tagline')}</span>
           </div>
         </div>
 
         {/* Divider & Bottom */}
         <div className="mt-8 pt-8 border-t border-gray-800">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-center md:text-left">
-            <p>Based on the Autism Education Trust (AET) Progression Framework</p>
-            <p>© {currentYear} TrainTrack. Created for Al Karamah Hackathon.</p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-center md:text-start">
+            <p>{t('footer.aetBased')}</p>
+            <p>&copy; {currentYear} {t('footer.copyright')}</p>
           </div>
         </div>
       </div>

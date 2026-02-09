@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
+import { useLanguage } from '@/lib/i18n';
 
 interface ClassData {
   id: string;
@@ -93,6 +94,7 @@ interface SavedLesson {
 
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
+  const { t, locale } = useLanguage();
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -751,7 +753,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       return;
     }
 
-    if (!confirm('Delete this lesson plan?')) return;
+    if (!confirm(t('classDetail.deleteLessonConfirm'))) return;
 
     try {
       const res = await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, { method: 'DELETE' });
@@ -1005,7 +1007,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
   // Delete a custom card
   const deleteCustomCard = async (cardId: string) => {
-    if (!confirm('Delete this custom card? It will not be removed from existing schedules.')) return;
+    if (!confirm(t('classDetail.deleteCustomCardConfirm'))) return;
     try {
       const res = await fetch(`/api/custom-cards/${cardId}`, { method: 'DELETE' });
       if (res.ok) {
@@ -1048,9 +1050,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Class Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('classDetail.classNotFound')}</h1>
           <Link href="/classes" className="text-primary-600 hover:underline">
-            Return to Classes
+            {t('classDetail.returnToClasses')}
           </Link>
         </div>
       </div>
@@ -1063,7 +1065,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <Breadcrumb items={[
-          { label: 'Classes', href: '/classes' },
+          { label: t('classesPage.title'), href: '/classes' },
           { label: classData.name }
         ]} />
 
@@ -1072,8 +1074,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           href="/classes"
           className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Classes
+          <ArrowLeft className="h-4 w-4 me-2 rtl:rotate-180" />
+          {t('classDetail.backToClasses')}
         </Link>
 
         {/* Class Header */}
@@ -1081,11 +1083,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{classData.name}</h1>
-              <p className="text-gray-600 mb-4">{classData.description || 'No description'}</p>
-              <div className="flex items-center space-x-4">
+              <p className="text-gray-600 mb-4">{classData.description || t('common.noDescription')}</p>
+              <div className="flex items-center space-x-4 rtl:space-x-reverse">
                 <span className="inline-flex items-center text-sm text-gray-500">
-                  <Users className="h-4 w-4 mr-1" />
-                  {students.length} Students
+                  <Users className="h-4 w-4 me-1" />
+                  {students.length} {t('classDetail.studentsTitle')}
                 </span>
                 {classData.ageRange && (
                   <span className="text-xs bg-primary-50 text-primary-700 px-3 py-1 rounded-full">
@@ -1115,27 +1117,27 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
                   >
                     <BookOpen className="h-4 w-4" />
-                    <span>Generate Class Lesson</span>
+                    <span>{t('classDetail.generateClassLesson')}</span>
                   </button>
                   <button
                     onClick={() => generateAllPlans()}
                     disabled={generatingAllPlans || !hasStudentsNeedingPlans || (!generatedLesson && savedLessons.length === 0)}
-                    title={(!generatedLesson && savedLessons.length === 0) ? 'Generate or select a class lesson first' : undefined}
+                    title={(!generatedLesson && savedLessons.length === 0) ? t('classDetail.generateLessonFirst') : undefined}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-ai-500 text-white rounded-lg hover:bg-ai-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generatingAllPlans ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         {allPlansProgress ? (
-                          <span>Generating {allPlansProgress.current}/{allPlansProgress.total}...</span>
+                          <span>{t('common.generating')} {allPlansProgress.current}/{allPlansProgress.total}...</span>
                         ) : (
-                          <span>Starting...</span>
+                          <span>{t('common.starting')}</span>
                         )}
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        <span>Individual Goal Plans {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
+                        <span>{t('classDetail.individualGoalPlans')} {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
                       </>
                     )}
                   </button>
@@ -1157,8 +1159,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         <BookOpen className="h-6 w-6 text-emerald-600" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-gray-900">Generate Class Lesson</h2>
-                        <p className="text-sm text-gray-500">Create a unified lesson with differentiated entry points for all students</p>
+                        <h2 className="text-xl font-bold text-gray-900">{t('classDetail.generateClassLessonTitle')}</h2>
+                        <p className="text-sm text-gray-500">{t('classDetail.lessonModalSubtitle')}</p>
                       </div>
                     </div>
                     <button
@@ -1179,91 +1181,91 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Curriculum Area *
+                        {t('classDetail.curriculumArea')}
                       </label>
                       <select
                         value={lessonForm.curriculumArea}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, curriculumArea: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       >
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="Literacy">Literacy</option>
-                        <option value="Communication and Language">Communication and Language</option>
-                        <option value="Understanding the World">Understanding the World</option>
-                        <option value="Physical Development">Physical Development</option>
-                        <option value="Personal, Social and Emotional Development">Personal, Social and Emotional Development</option>
-                        <option value="Expressive Arts and Design">Expressive Arts and Design</option>
-                        <option value="Science">Science</option>
-                        <option value="Life Skills">Life Skills</option>
+                        <option value="Mathematics">{t('classDetail.mathematics')}</option>
+                        <option value="Literacy">{t('classDetail.literacy')}</option>
+                        <option value="Communication and Language">{t('classDetail.communicationAndLanguage')}</option>
+                        <option value="Understanding the World">{t('classDetail.understandingTheWorld')}</option>
+                        <option value="Physical Development">{t('classDetail.physicalDevelopment')}</option>
+                        <option value="Personal, Social and Emotional Development">{t('classDetail.personalSocialEmotional')}</option>
+                        <option value="Expressive Arts and Design">{t('classDetail.expressiveArts')}</option>
+                        <option value="Science">{t('classDetail.science')}</option>
+                        <option value="Life Skills">{t('classDetail.lifeSkills')}</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lesson Topic *
+                        {t('classDetail.lessonTopic')}
                       </label>
                       <input
                         type="text"
                         value={lessonForm.lessonTopic}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, lessonTopic: e.target.value }))}
-                        placeholder="e.g., Counting and one-to-one correspondence, Using money, Shapes"
+                        placeholder={t('classDetail.lessonTopicPlaceholder')}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Learning Objective *
+                        {t('classDetail.learningObjective')}
                       </label>
                       <input
                         type="text"
                         value={lessonForm.learningObjective}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, learningObjective: e.target.value }))}
-                        placeholder="e.g., Children will understand that numbers represent quantities"
+                        placeholder={t('classDetail.learningObjectivePlaceholder')}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
-                      <p className="mt-1 text-xs text-gray-500">This single objective will be accessed by ALL students at different levels</p>
+                      <p className="mt-1 text-xs text-gray-500">{t('classDetail.learningObjectiveHint')}</p>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Additional Notes (Optional)
+                        {t('classDetail.additionalNotes')}
                       </label>
                       <textarea
                         value={lessonForm.additionalNotes}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, additionalNotes: e.target.value }))}
-                        placeholder="e.g., We have ducks props available, focus on outdoor activities, link to recent school trip..."
+                        placeholder={t('classDetail.additionalNotesPlaceholder')}
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                       />
                     </div>
-                    
+
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">What will be generated:</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">{t('classDetail.whatWillBeGenerated')}</h4>
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Circle Time / Hook activity with songs
+                          {t('classDetail.generatedItem1')}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Attention Autism stages (Bucket Time, concept introduction)
+                          {t('classDetail.generatedItem2')}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Main activity with differentiated entry points per student
+                          {t('classDetail.generatedItem3')}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Continuous provision / play-based activities
+                          {t('classDetail.generatedItem4')}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Resources checklist (visuals, props, materials)
+                          {t('classDetail.generatedItem5')}
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          Communication goals embedded for each student
+                          {t('classDetail.generatedItem6')}
                         </li>
                       </ul>
                     </div>
@@ -1274,7 +1276,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       onClick={() => setShowLessonModal(false)}
                       className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       onClick={generateClassLesson}
@@ -1284,12 +1286,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       {generatingLesson ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Generating...</span>
+                          <span>{t('common.generating')}...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4" />
-                          <span>Generate Lesson Plan</span>
+                          <span>{t('classDetail.generateLessonPlan')}</span>
                         </>
                       )}
                     </button>
@@ -1318,14 +1320,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <FileText className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">Last Lesson: {lastLesson.lessonTopic}</p>
+                    <p className="text-sm font-semibold text-gray-900">{t('classDetail.lastLesson')}: {lastLesson.lessonTopic}</p>
                     <p className="text-xs text-gray-500">
                       {lastLesson.curriculumArea} &middot; {new Date(lastLesson.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600">
-                  <span className="text-sm font-medium">View</span>
+                  <span className="text-sm font-medium">{t('common.view')}</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </button>
@@ -1344,7 +1346,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <FileText className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Class Lesson Plan</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t('classDetail.classLessonPlan')}</h2>
                   {currentSavedLesson ? (
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-sm text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
@@ -1364,7 +1366,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       </span>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">Unified lesson with differentiated entry points</p>
+                    <p className="text-sm text-gray-500">{t('classDetail.lessonDifferentiated')}</p>
                   )}
                 </div>
               </div>
@@ -1379,7 +1381,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     }`}
                   >
                     <History className="h-4 w-4" />
-                    <span>History ({savedLessons.length})</span>
+                    <span>{t('classDetail.history')} ({savedLessons.length})</span>
                   </button>
                 )}
                 <button
@@ -1387,14 +1389,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   <Printer className="h-4 w-4" />
-                  <span>Print</span>
+                  <span>{t('common.print')}</span>
                 </button>
                 <button
                   onClick={() => setShowLessonModal(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span>New Lesson</span>
+                  <span>{t('classDetail.newLesson')}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1404,7 +1406,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     setVisualSteps(null);
                   }}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Hide lesson"
+                  title={t('classDetail.hideLesson')}
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1415,7 +1417,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {showLessonHistory && (
               <div className="mb-6 border border-gray-200 rounded-xl overflow-hidden no-print">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700">Previous Lessons</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t('classDetail.previousLessons')}</h3>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
                   {savedLessons.map((lesson) => (
@@ -1438,7 +1440,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             {lesson.curriculumArea}
                           </span>
                           {lesson.id === currentLessonId && (
-                            <span className="text-xs text-emerald-600 font-medium">Viewing</span>
+                            <span className="text-xs text-emerald-600 font-medium">{t('classDetail.viewing')}</span>
                           )}
                         </div>
                         <p className="text-sm font-medium text-gray-900 truncate">{lesson.lessonTopic}</p>
@@ -1453,7 +1455,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Delete this lesson plan?')) {
+                          if (confirm(t('classDetail.deleteLessonConfirm'))) {
                             setDeletingLessonId(lesson.id);
                             fetch(`/api/classes/${classId}/lessons/${lesson.id}`, { method: 'DELETE' })
                               .then(res => {
@@ -1475,7 +1477,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               .finally(() => setDeletingLessonId(null));
                           }
                         }}
-                        className="ml-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                        className="ms-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                         title="Delete lesson"
                       >
                         {deletingLessonId === lesson.id ? (
@@ -1496,22 +1498,22 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   value={editedLessonContent}
                   onChange={(e) => setEditedLessonContent(e.target.value)}
                   className="w-full h-96 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y font-mono text-sm bg-white"
-                  placeholder="Edit your lesson plan..."
+                  placeholder={t('classDetail.editLessonPlaceholder')}
                 />
                 <div className="flex justify-end gap-2 mt-3">
                   <button
                     onClick={() => setEditingLesson(false)}
                     className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
+                    <X className="h-4 w-4 me-1" />
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={saveLessonEdit}
                     className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
                   >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save Changes
+                    <Save className="h-4 w-4 me-1" />
+                    {t('classDetail.saveChanges')}
                   </button>
                 </div>
               </div>
@@ -1603,13 +1605,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {showRefineInput && !editingLesson && (
               <div className="mt-6 pt-4 border-t border-gray-200 no-print">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <RefreshCw className="h-4 w-4 inline mr-1" />
-                  What would you like to change?
+                  <RefreshCw className="h-4 w-4 inline me-1" />
+                  {t('classDetail.whatToChange')}
                 </label>
                 <textarea
                   value={refineFeedback}
                   onChange={(e) => setRefineFeedback(e.target.value)}
-                  placeholder="E.g., Make the bucket time activity more sensory-focused, add a calming break between stages, simplify the language for the worksheets..."
+                  placeholder={t('classDetail.refinePlaceholder')}
                   className="w-full h-24 p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                   disabled={refiningLesson}
                 />
@@ -1619,7 +1621,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     disabled={refiningLesson}
                     className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={refineLesson}
@@ -1629,12 +1631,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {refiningLesson ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Refining...
+                        {t('common.refining')}...
                       </>
                     ) : (
                       <>
                         <RefreshCw className="h-4 w-4" />
-                        Refine Lesson
+                        {t('classDetail.refineLesson')}
                       </>
                     )}
                   </button>
@@ -1652,13 +1654,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 >
                   {generatingVisuals ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      Generating...
+                      <Loader2 className="h-4 w-4 me-1 animate-spin" />
+                      {t('common.generating')}...
                     </>
                   ) : (
                     <>
-                      <ImageIcon className="h-4 w-4 mr-1" />
-                      Generate Visual Schedule
+                      <ImageIcon className="h-4 w-4 me-1" />
+                      {t('classDetail.generateVisualSchedule')}
                     </>
                   )}
                 </button>
@@ -1666,8 +1668,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   onClick={() => setShowRefineInput(true)}
                   className="inline-flex items-center px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Refine Lesson
+                  <RefreshCw className="h-4 w-4 me-1" />
+                  {t('classDetail.refineLesson')}
                 </button>
                 <button
                   onClick={() => {
@@ -1676,15 +1678,15 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   }}
                   className="inline-flex items-center px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
                 >
-                  <Pencil className="h-4 w-4 mr-1" />
-                  Edit
+                  <Pencil className="h-4 w-4 me-1" />
+                  {t('common.edit')}
                 </button>
                 <button
                   onClick={deleteCurrentLesson}
                   className="inline-flex items-center px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
+                  <Trash2 className="h-4 w-4 me-1" />
+                  {t('common.delete')}
                 </button>
               </div>
             )}
@@ -1694,10 +1696,10 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm text-red-700 font-medium">Visual Schedule Error</p>
+                  <p className="text-sm text-red-700 font-medium">{t('classDetail.visualScheduleError')}</p>
                   <p className="text-xs text-red-600">{visualError}</p>
                 </div>
-                <button onClick={() => setVisualError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <button onClick={() => setVisualError(null)} className="ms-auto text-red-400 hover:text-red-600">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1712,8 +1714,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       <ImageIcon className="h-5 w-5 text-violet-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">Visual Schedule</h3>
-                      <p className="text-xs text-gray-500">Drag to reorder • Hover for options</p>
+                      <h3 className="text-lg font-bold text-gray-900">{t('classDetail.visualSchedule')}</h3>
+                      <p className="text-xs text-gray-500">{t('classDetail.visualScheduleHint')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 no-print">
@@ -1731,7 +1733,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors"
                     >
                       <Plus className="h-3 w-3" />
-                      Add Card
+                      {t('classDetail.addCard')}
                     </button>
                     <button
                       onClick={generateVisualSchedule}
@@ -1739,19 +1741,19 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors disabled:opacity-50"
                     >
                       <RefreshCw className={`h-3 w-3 ${generatingVisuals ? 'animate-spin' : ''}`} />
-                      Regenerate All
+                      {t('classDetail.regenerateAll')}
                     </button>
                     <button
                       onClick={printVisualSchedule}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors"
                     >
                       <Printer className="h-3 w-3" />
-                      Print
+                      {t('common.print')}
                     </button>
                     <button
                       onClick={() => setVisualSteps(null)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Hide visual schedule"
+                      title={t('classDetail.hideVisualSchedule')}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -1790,7 +1792,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               onClick={(e) => { e.stopPropagation(); regenerateCard(index); }}
                               disabled={regeneratingCardIndex === index}
                               className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
-                              title="Try different picture"
+                              title={t('classDetail.tryDifferentPicture')}
                             >
                               {regeneratingCardIndex === index ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -1801,7 +1803,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             <button
                               onClick={(e) => { e.stopPropagation(); removeVisualStep(index); }}
                               className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                              title="Remove card"
+                              title={t('classDetail.removeCard')}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -1855,7 +1857,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             <span
                               className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
                               onClick={(e) => { e.stopPropagation(); setEditingCardIndex(index); }}
-                              title="Click to rename"
+                              title={t('classDetail.clickToRename')}
                             >
                               {step.label}
                             </span>
@@ -1864,7 +1866,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         
                         {/* Arrow between steps */}
                         {index < visualSteps.length - 1 && (
-                          <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block" />
+                          <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block rtl:rotate-180" />
                         )}
                       </div>
                     ))}
@@ -1873,11 +1875,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   {/* ARASAAC Attribution */}
                   <div className="mt-4 pt-3 border-t border-gray-100 text-center">
                     <p className="text-[10px] text-gray-400">
-                      Pictograms by{' '}
+                      {t('classDetail.arasaacAttribution')}{' '}
                       <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
                         ARASAAC
                       </a>
-                      {' '}— Gobierno de Aragón. Licensed under{' '}
+                      {' '}&mdash; Gobierno de Arag&oacute;n. {t('classDetail.licensedUnder')}{' '}
                       <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
                         CC BY-NC-SA 4.0
                       </a>
@@ -1897,7 +1899,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         <div className="p-2 bg-violet-100 rounded-lg">
                           <Plus className="h-5 w-5 text-violet-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">Add Visual Card</h3>
+                        <h3 className="text-lg font-bold text-gray-900">{t('classDetail.addVisualCard')}</h3>
                       </div>
                       <button
                         onClick={() => setShowAddCardModal(false)}
@@ -1910,12 +1912,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {/* Card label input — shown for search & custom tabs */}
                     {cardModalTab !== 'upload' && (
                       <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Card Label</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.cardLabel')}</label>
                         <input
                           type="text"
                           value={newCardLabel}
                           onChange={(e) => setNewCardLabel(e.target.value)}
-                          placeholder="E.g., Wash Hands, Sit Down, Good Listening..."
+                          placeholder={t('classDetail.cardLabelPlaceholder')}
                           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                         />
                       </div>
@@ -1932,7 +1934,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <Search className="h-3.5 w-3.5" />
-                        ARASAAC Search
+                        {t('classDetail.arasaacSearch')}
                       </button>
                       <button
                         onClick={() => setCardModalTab('custom')}
@@ -1943,7 +1945,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <ImageIcon className="h-3.5 w-3.5" />
-                        Custom Cards{customCards.length > 0 && ` (${customCards.length})`}
+                        {t('classDetail.customCards')}{customCards.length > 0 && ` (${customCards.length})`}
                       </button>
                       <button
                         onClick={() => setCardModalTab('upload')}
@@ -1954,7 +1956,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <Upload className="h-3.5 w-3.5" />
-                        Upload New
+                        {t('classDetail.uploadNew')}
                       </button>
                     </div>
                   </div>
@@ -1983,7 +1985,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 searchPictograms(cardSearchQuery);
                               }
                             }}
-                            placeholder="Search pictograms... (e.g., happy, eat, book, toilet)"
+                            placeholder={t('classDetail.searchPlaceholder')}
                             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                           />
                           {cardSearching && (
@@ -2014,14 +2016,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         ) : cardSearchQuery.trim().length >= 2 && !cardSearching ? (
                           <div className="text-center py-12">
                             <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">No pictograms found for &ldquo;{cardSearchQuery}&rdquo;</p>
-                            <p className="text-xs text-gray-400 mt-1">Try a simpler word like &ldquo;sit&rdquo;, &ldquo;eat&rdquo;, &ldquo;happy&rdquo;</p>
+                            <p className="text-sm text-gray-500">{t('classDetail.noPictogramsFound')} &ldquo;{cardSearchQuery}&rdquo;</p>
+                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.trySimpler')}</p>
                           </div>
                         ) : (
                           <div className="text-center py-12">
                             <Search className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">Search for a pictogram to add</p>
-                            <p className="text-xs text-gray-400 mt-1">Type at least 2 characters to search the ARASAAC database</p>
+                            <p className="text-sm text-gray-500">{t('classDetail.searchToPictogram')}</p>
+                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.typeAtLeast')}</p>
                           </div>
                         )}
                       </div>
@@ -2062,14 +2064,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         ) : (
                           <div className="text-center py-12">
                             <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">No custom cards yet</p>
-                            <p className="text-xs text-gray-400 mt-1">Upload your own images in the &ldquo;Upload New&rdquo; tab</p>
+                            <p className="text-sm text-gray-500">{t('classDetail.noCustomCards')}</p>
+                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.uploadInOtherTab')}</p>
                             <button
                               onClick={() => setCardModalTab('upload')}
                               className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100"
                             >
                               <Upload className="h-3 w-3" />
-                              Upload a Card
+                              {t('classDetail.uploadACard')}
                             </button>
                           </div>
                         )}
@@ -2080,18 +2082,18 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {cardModalTab === 'upload' && (
                       <div className="max-w-md mx-auto">
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Card Name *</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.cardName')}</label>
                           <input
                             type="text"
                             value={uploadCardName}
                             onChange={(e) => setUploadCardName(e.target.value)}
-                            placeholder="E.g., My Fidget Toy, Quiet Area, Token Board..."
+                            placeholder={t('classDetail.cardNamePlaceholder')}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                           />
                         </div>
 
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Image *</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.image')}</label>
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -2111,7 +2113,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 onClick={() => { setUploadCardImage(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                                 className="mt-2 text-xs text-red-500 hover:text-red-700"
                               >
-                                Remove image
+                                {t('classDetail.removeImage')}
                               </button>
                             </div>
                           ) : (
@@ -2120,8 +2122,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               className="w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-violet-400 hover:bg-violet-50 transition-colors"
                             >
                               <Upload className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Click to select an image</p>
-                              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or GIF — max 2MB</p>
+                              <p className="text-sm text-gray-500">{t('classDetail.clickToSelect')}</p>
+                              <p className="text-xs text-gray-400 mt-1">{t('classDetail.imageFormats')}</p>
                             </button>
                           )}
                         </div>
@@ -2134,17 +2136,17 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                           {uploadingCard ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Uploading...
+                              {t('common.uploading')}
                             </>
                           ) : (
                             <>
                               <Upload className="h-4 w-4" />
-                              Save Custom Card
+                              {t('classDetail.saveCustomCard')}
                             </>
                           )}
                         </button>
                         <p className="text-xs text-gray-400 mt-2 text-center">
-                          The card will be saved and available for all future visual schedules.
+                          {t('classDetail.cardSavedNote')}
                         </p>
                       </div>
                     )}
@@ -2158,20 +2160,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
         {/* Students Grid */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Students</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('classDetail.studentsTitle')}</h2>
         </div>
 
         {students.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Yet</h3>
-            <p className="text-gray-600 mb-4">Add students to this class in the admin panel.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('classDetail.noStudentsYet')}</h3>
+            <p className="text-gray-600 mb-4">{t('classDetail.noStudentsDesc')}</p>
             <Link
               href="/admin"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
             >
               <Settings className="h-4 w-4" />
-              Go to Admin
+              {t('classDetail.goToAdmin')}
             </Link>
           </div>
         ) : (
@@ -2241,13 +2243,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                           href={`/students/${student.id}`}
                           className="flex-1 text-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                         >
-                          Profile
+                          {t('common.profile')}
                         </Link>
                         <Link
                           href={`/students/${student.id}/aet`}
                           className="flex-1 text-center px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
                         >
-                          All Goals
+                          {t('classDetail.allGoals')}
                         </Link>
                       </div>
                     </div>
@@ -2262,8 +2264,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-3 animate-success-pulse">
                                 <Check className="h-10 w-10 text-green-500" />
                               </div>
-                              <p className="text-white font-bold text-lg animate-fade-in-up">Goal Completed!</p>
-                              <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>Moving to next goal...</p>
+                              <p className="text-white font-bold text-lg animate-fade-in-up">{t('classDetail.goalCompleted')}</p>
+                              <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>{t('classDetail.movingToNext')}</p>
                             </div>
                           )}
                           
@@ -2272,14 +2274,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             <div className="flex items-center gap-2">
                               <Target className={`h-5 w-5 ${colors.text}`} />
                               <span className="text-sm font-semibold text-gray-700">
-                                {isAtCurrentGoal ? 'Current Goal' : 'Viewing Goal'}
+                                {isAtCurrentGoal ? t('classDetail.currentGoal') : t('classDetail.viewingGoal')}
                               </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
                                 {displayedGoal.area.name}
                               </span>
                               {!isAtCurrentGoal && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${progress?.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                  {progress?.completed ? 'Completed' : 'Not Current'}
+                                  {progress?.completed ? t('classDetail.completed') : t('classDetail.notCurrent')}
                                 </span>
                               )}
                             </div>
@@ -2290,10 +2292,10 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 <button
                                   onClick={() => jumpToCurrentGoal(student.id)}
                                   className="mr-1 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors flex items-center gap-1"
-                                  title="Jump to current goal"
+                                  title={t('classDetail.jumpToCurrentGoal')}
                                 >
                                   <SkipForward className="h-3 w-3" />
-                                  Jump to Current Goal
+                                  {t('classDetail.jumpToCurrentGoal')}
                                 </button>
                               )}
                               <button
@@ -2378,7 +2380,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             >
                               <span className="flex items-center gap-2">
                                 <Sparkles className="h-4 w-4" />
-                                {hasPlan ? 'View Goal Plan' : 'Add Goal Plan'}
+                                {hasPlan ? t('classDetail.viewGoalPlan') : t('classDetail.addGoalPlan')}
                               </span>
                               {isGoalExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -2395,7 +2397,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                   <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                                     <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                                     <div>
-                                      <p className="text-sm text-red-700 font-medium">Generation Failed</p>
+                                      <p className="text-sm text-red-700 font-medium">{t('classDetail.generationFailed')}</p>
                                       <p className="text-xs text-red-600">{generationError}</p>
                                     </div>
                                   </div>
@@ -2404,8 +2406,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 {generatingPlan === goalKey ? (
                                   <div className="text-center py-8">
                                     <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-3" />
-                                    <p className="text-sm text-gray-600 font-medium">Generating goal overview...</p>
-                                    <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
+                                    <p className="text-sm text-gray-600 font-medium">{t('classDetail.generatingGoalOverview')}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{t('classDetail.analyzingProfile').replace('{name}', student.firstName)}</p>
                                   </div>
                                 ) : editingPlan === goalKey ? (
                                   <div>
@@ -2413,7 +2415,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                       value={editedPlan}
                                       onChange={(e) => setEditedPlan(e.target.value)}
                                       className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-sm bg-white"
-                                      placeholder="Write your goal plan..."
+                                      placeholder={t('classDetail.writeGoalPlan')}
                                     />
                                     <div className="flex justify-end gap-2 mt-3">
                                       <button
@@ -2421,14 +2423,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                                       >
                                         <X className="h-4 w-4 mr-1" />
-                                        Cancel
+                                        {t('common.cancel')}
                                       </button>
                                       <button
                                         onClick={() => savePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
                                       >
                                         <Save className="h-4 w-4 mr-1" />
-                                        Save Plan
+                                        {t('classDetail.savePlan')}
                                       </button>
                                     </div>
                                   </div>
@@ -2443,7 +2445,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-ai-50 text-ai-600 rounded-lg text-sm font-medium hover:bg-ai-100"
                                       >
                                         <RefreshCw className="h-4 w-4 mr-1" />
-                                        Regenerate
+                                        {t('classDetail.regenerate')}
                                       </button>
                                       <button
                                         onClick={() => {
@@ -2453,14 +2455,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100"
                                       >
                                         <Pencil className="h-4 w-4 mr-1" />
-                                        Edit
+                                        {t('common.edit')}
                                       </button>
                                       <button
                                         onClick={() => deletePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"
                                       >
                                         <Trash2 className="h-4 w-4 mr-1" />
-                                        Delete
+                                        {t('common.delete')}
                                       </button>
                                     </div>
                                   </div>
@@ -2469,7 +2471,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-2">
                                         <MessageCircle className="h-4 w-4 inline mr-1" />
-                                        Additional Context
+                                        {t('classDetail.additionalContext')}
                                       </label>
                                       <textarea
                                         value={customInstructions[goalKey!] || ''}
@@ -2477,7 +2479,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                           ...prev,
                                           [goalKey!]: e.target.value
                                         }))}
-                                        placeholder={`Add extra context for ${student.firstName}'s goal...`}
+                                        placeholder={t('classDetail.addExtraContextPlaceholder').replace('{name}', student.firstName)}
                                         className="w-full h-20 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm bg-white"
                                       />
                                     </div>
@@ -2486,14 +2488,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         onClick={() => setShowInstructions(null)}
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                                       >
-                                        Cancel
+                                        {t('common.cancel')}
                                       </button>
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
-                                        Generate Plan
+                                        {t('classDetail.generatePlan')}
                                       </button>
                                     </div>
                                   </div>
@@ -2502,7 +2504,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="text-center py-4">
                                       <Wand2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                                       <p className="text-sm text-gray-600">
-                                        Get goal guidance for <strong>{displayedGoal.subcategory.name}</strong>
+                                        {t('classDetail.getGoalGuidance')} <strong>{displayedGoal.subcategory.name}</strong>
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap justify-center gap-3">
@@ -2511,14 +2513,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-4 py-2 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
-                                        Generate with AI
+                                        {t('classDetail.generateWithAI')}
                                       </button>
                                       <button
                                         onClick={() => setShowInstructions(goalKey)}
                                         className="inline-flex items-center px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 border border-primary-200"
                                       >
                                         <MessageCircle className="h-4 w-4 mr-1" />
-                                        Add Extra Context
+                                        {t('classDetail.addExtraContext')}
                                       </button>
                                       <button
                                         onClick={() => {
@@ -2528,7 +2530,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
                                       >
                                         <Pencil className="h-4 w-4 mr-1" />
-                                        Write Manually
+                                        {t('classDetail.writeManually')}
                                       </button>
                                     </div>
                                   </div>
@@ -2544,8 +2546,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               <Check className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                              <span className="text-base font-semibold text-green-800">All AET goals completed!</span>
-                              <p className="text-sm text-green-600">Great progress on the framework</p>
+                              <span className="text-base font-semibold text-green-800">{t('classDetail.allGoalsCompleted')}</span>
+                              <p className="text-sm text-green-600">{t('classDetail.greatProgress')}</p>
                             </div>
                           </div>
                         </div>
