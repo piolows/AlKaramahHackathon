@@ -226,7 +226,7 @@ Write a short, helpful goal overview for this child. This is for a school for au
 **Advice & Guidance:**
 [3-4 bullet points of practical tips specific to this child — reference their strengths, interests, and communication style]
 
-**What Success Looks Like Generally, and What It Looks Like for ${student.firstName}:**
+**What Success Looks Like Looks Like for ${student.firstName}:**
 [2-3 observable, realistic indicators that ${student.firstName} is progressing — personalised to their profile]
 
 Keep it under 120 words total. Be warm, practical, and specific to this child. No generic advice.`;

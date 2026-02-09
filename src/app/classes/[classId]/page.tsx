@@ -1550,6 +1550,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         borderColor = 'border-violet-400'; bgColor = 'bg-violet-50'; textColor = 'text-violet-800'; icon = '✏️';
                       } else if (text.includes('continuous') || text.includes('practice') || text.includes('provision') || text.includes('consolidation')) {
                         borderColor = 'border-teal-400'; bgColor = 'bg-teal-50'; textColor = 'text-teal-800'; icon = '🎮';
+                      } else if (text.includes('additional resource')) {
+                        borderColor = 'border-sky-400'; bgColor = 'bg-sky-50'; textColor = 'text-sky-800'; icon = '🔗';
                       } else if (text.includes('resource') || text.includes('checklist')) {
                         borderColor = 'border-rose-400'; bgColor = 'bg-rose-50'; textColor = 'text-rose-800'; icon = '📦';
                       } else if (text.includes('differentiation') || text.includes('entry point')) {
@@ -1588,6 +1590,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       else if (text.includes('curriculum') || text.includes('learning objective') || text.includes('aet focus') || text.includes('duration')) extraClass = 'text-emerald-700';
                       return <strong className={`font-semibold ${extraClass}`}>{children}</strong>;
                     },
+                    a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 underline decoration-sky-300 hover:decoration-sky-500 transition-colors">{children}</a>,
                     hr: () => <hr className="my-6 border-gray-200" />,
                   }}
                 >
