@@ -72,7 +72,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#FEFDFB', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--background) 0%, var(--primary-50) 30%, var(--background) 60%, var(--primary-50) 100%)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Cursor Trail Bubbles */}
       {bubbles.map(bubble => (
         <div
@@ -83,7 +83,7 @@ export default function LoginPage() {
             top: bubble.y - bubble.size / 2,
             width: bubble.size,
             height: bubble.size,
-            backgroundColor: '#1E3A8A',
+            backgroundColor: 'var(--primary-400)',
             opacity: bubble.opacity,
             transform: `scale(${bubble.opacity})`,
             transition: 'transform 0.1s ease-out',
@@ -94,7 +94,7 @@ export default function LoginPage() {
 
       {/* Logo and Title - Top Left */}
       <div className="p-5 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4ADE80 0%, #1E3A8A 100%)' }}>
+        <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, var(--primary-300) 0%, var(--primary-400) 50%, var(--dark-blue-600) 100%)' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M4 12C4 12 8 6 12 6C16 6 20 12 20 12" stroke="white" strokeWidth="2" strokeLinecap="round" />
             <path d="M4 12C4 12 8 18 12 18C16 18 20 12 20 12" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
@@ -104,10 +104,10 @@ export default function LoginPage() {
           </svg>
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: '#1E3A8A' }}>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--dark-blue-600)' }}>
             TrainTrack
           </h1>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs" style={{ color: 'var(--primary-400)' }}>
             Empowering Teachers
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Welcome Text */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold" style={{ color: '#1E3A8A' }}>
+            <h2 className="text-3xl font-bold" style={{ color: 'var(--dark-blue-600)' }}>
               Welcome back
             </h2>
             <p className="text-gray-600 mt-2">
@@ -131,7 +131,7 @@ export default function LoginPage() {
             <form onSubmit={handleSignIn} className="space-y-6">
               {/* Username Field */}
               <div>
-                <label htmlFor="username" className="block text-sm font-medium mb-2" style={{ color: '#1E3A8A' }}>
+                <label htmlFor="username" className="block text-sm font-medium mb-2" style={{ color: 'var(--dark-blue-600)' }}>
                   Username
                 </label>
                 <input
@@ -139,15 +139,15 @@ export default function LoginPage() {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all"
-                  style={{ backgroundColor: '#FEFDFB' }}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all"
+                  style={{ backgroundColor: 'var(--background)' }}
                   placeholder="Enter your username"
                 />
               </div>
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: '#1E3A8A' }}>
+                <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: 'var(--dark-blue-600)' }}>
                   Password
                 </label>
                 <input
@@ -155,8 +155,8 @@ export default function LoginPage() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all"
-                  style={{ backgroundColor: '#FEFDFB' }}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all"
+                  style={{ backgroundColor: 'var(--background)' }}
                   placeholder="Enter your password"
                 />
               </div>
@@ -164,10 +164,10 @@ export default function LoginPage() {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300" style={{ accentColor: '#4ADE80' }} />
+                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300" style={{ accentColor: 'var(--primary-400)' }} />
                   <span className="text-gray-600">Remember me</span>
                 </label>
-                <button type="button" className="font-medium hover:underline" style={{ color: '#1E3A8A' }}>
+                <button type="button" className="cursor-pointer font-medium hover:underline" style={{ color: 'var(--primary-400)' }}>
                   Forgot password?
                 </button>
               </div>
@@ -175,8 +175,8 @@ export default function LoginPage() {
               {/* Sign In Button */}
               <button
                 type="submit"
-                className="w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #4ADE80 0%, #1E3A8A 100%)' }}
+                className="cursor-pointer w-full py-3 px-4 rounded-xl font-semibold text-white transition-all hover:opacity-90 hover:shadow-xl shadow-md"
+                style={{ background: 'linear-gradient(135deg, var(--primary-300) 0%, var(--primary-400) 100%)' }}
               >
                 Sign In
               </button>
@@ -196,8 +196,8 @@ export default function LoginPage() {
             <button 
               type="button"
               onClick={() => router.push('/classes')}
-              className="font-semibold hover:underline" 
-              style={{ color: '#1E3A8A' }}
+              className="cursor-pointer font-semibold hover:underline" 
+              style={{ color: 'var(--primary-400)' }}
             >
               Sign up
             </button>

@@ -1,6 +1,61 @@
 @import "tailwindcss";
 
 :root {
+  /* New Color Palette */
+  --background: #fefefe;
+  --foreground: #040404;
+  
+  /* Dark Blue colors - based on Dark Gray Blue #2f3f58 */
+  --dark-blue-50: #f4f6f8;
+  --dark-blue-100: #e4e8ed;
+  --dark-blue-200: #c9d1db;
+  --dark-blue-300: #a3b1c3;
+  --dark-blue-400: #7589a3;
+  --dark-blue-500: #4f6380;
+  --dark-blue-600: #2f3f58;
+  --dark-blue-700: #283548;
+  --dark-blue-800: #1f2936;
+  --dark-blue-900: #1a2535;
+
+  /* Light Green accent colors - lighter variation of #b6d886 */
+  --accent-50: #f9fcf4;
+  --accent-100: #f0f7e5;
+  --accent-200: #e2f0cc;
+  --accent-300: #cce6a8;
+  --accent-400: #b6d886;
+  --accent-500: #9fc76a;
+  --accent-600: #82ad4d;
+  --accent-700: #658a3c;
+  --accent-800: #516d32;
+  --accent-900: #445c2b;
+
+
+  /* Green colors - based on #b6d886 */
+  --primary-50: #f4f9ed;
+  --primary-100: #e8f3da;
+  --primary-200: #d4e8b8;
+  --primary-300: #b6d886;
+  --primary-400: #9bc95e;
+  --primary-500: #7fb83d;
+  --primary-600: #64992e;
+  --primary-700: #4c7524;
+  --primary-800: #3e5d1e;
+  --primary-900: #354f1c;
+
+  /* Danger/Warning colors - based on Pastel Red #e5b2ae */
+  --danger-50: #fdf6f5;
+  --danger-100: #fbeae8;
+  --danger-200: #f5d4d1;
+  --danger-300: #e5b2ae;
+  --danger-400: #d4918c;
+  --danger-500: #c2706a;
+  --danger-600: #a85650;
+  --danger-700: #8c4540;
+  --danger-800: #753a36;
+  --danger-900: #633330;
+
+
+  /* Old Color Palette (commented out)
   --background: #f9fafb;
   --foreground: #171717;
   
@@ -25,6 +80,7 @@
   --accent-700: #047857;
   --accent-800: #065f46;
   --accent-900: #064e3b;
+  */
 }
 
 @theme inline {
@@ -56,6 +112,30 @@
   --color-accent-700: var(--accent-700);
   --color-accent-800: var(--accent-800);
   --color-accent-900: var(--accent-900);
+
+  /* Danger colors */
+  --color-danger-50: var(--danger-50);
+  --color-danger-100: var(--danger-100);
+  --color-danger-200: var(--danger-200);
+  --color-danger-300: var(--danger-300);
+  --color-danger-400: var(--danger-400);
+  --color-danger-500: var(--danger-500);
+  --color-danger-600: var(--danger-600);
+  --color-danger-700: var(--danger-700);
+  --color-danger-800: var(--danger-800);
+  --color-danger-900: var(--danger-900);
+
+  /* Dark Blue colors */
+  --color-dark-blue-50: var(--dark-blue-50);
+  --color-dark-blue-100: var(--dark-blue-100);
+  --color-dark-blue-200: var(--dark-blue-200);
+  --color-dark-blue-300: var(--dark-blue-300);
+  --color-dark-blue-400: var(--dark-blue-400);
+  --color-dark-blue-500: var(--dark-blue-500);
+  --color-dark-blue-600: var(--dark-blue-600);
+  --color-dark-blue-700: var(--dark-blue-700);
+  --color-dark-blue-800: var(--dark-blue-800);
+  --color-dark-blue-900: var(--dark-blue-900);
   
   /* AI button colors */
   --color-ai-50: #f0e6ff;
