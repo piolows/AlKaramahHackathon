@@ -8,7 +8,7 @@ import {
   Cabin,
   Merriweather_Sans
 } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,19 +47,19 @@ const merriweatherSans = Merriweather_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "TrainTrack - Special Education Resource Hub",
-  description: "Empowering teachers of autistic children with personalized learning plans based on the AET Progression Framework",
+  title: "Sign In - TrainTrack",
+  description: "Sign in to TrainTrack - Special Education Resource Hub",
 };
 
-export default function RootLayout({
+export default function AuthLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} antialiased`}
       >
         {children}
       </body>
