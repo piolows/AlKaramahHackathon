@@ -105,3 +105,53 @@ model CustomCard {
   imageData String   // Base64-encoded image data (data URI)
   createdAt DateTime @default(now())
 }
+
+// ============================================
+// TRANSLATED COPY TABLES
+// Exact copies of Class, Student, StudentProgress
+// ============================================
+
+model ClassTranslated {
+  id          String    @id
+  name        String
+  description String?
+  ageRange    String?
+  createdAt   DateTime
+  updatedAt   DateTime
+}
+
+model StudentTranslated {
+  id                 String   @id
+  firstName          String
+  lastName           String
+  dateOfBirth        DateTime
+  classId            String
+
+  diagnoses          String   @default("[]")
+  strengths          String   @default("[]")
+  challenges         String   @default("[]")
+  interests          String   @default("[]")
+  sensoryNeeds       String   @default("[]")
+  communicationStyle String   @default("")
+  supportStrategies  String   @default("[]")
+  triggers           String   @default("[]")
+  calmingStrategies  String   @default("[]")
+  teacherNotes       String   @default("")
+
+  createdAt          DateTime
+  updatedAt          DateTime
+}
+
+model StudentProgressTranslated {
+  id             String   @id
+  studentId      String
+  subcategoryId  String
+  level          Int      @default(0)
+  completed      Boolean  @default(false)
+  plan           String?
+
+  createdAt      DateTime
+  updatedAt      DateTime
+
+  @@unique([studentId, subcategoryId])
+}
