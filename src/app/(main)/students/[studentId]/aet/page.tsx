@@ -19,7 +19,9 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
-  Target
+  Target,
+  SkipForward,
+  Image
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
@@ -50,6 +52,15 @@ interface SubcategoryProgress {
   plan: string | null;
 }
 
+// Goal visual pictogram
+interface GoalVisual {
+  label: string;
+  searchWord: string;
+  alternativeWords: string[];
+  pictogramId: number | null;
+  pictogramUrl: string | null;
+}
+
 export default function StudentAETPage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
   const [student, setStudent] = useState<Student | null>(null);
@@ -65,6 +76,11 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   const [customInstructions, setCustomInstructions] = useState<Record<string, string>>({});
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // ARASAAC goal visuals state
+  const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
+  const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
+  const [visualsError, setVisualsError] = useState<string | null>(null);
 
   // Fetch student and progress data
   useEffect(() => {
@@ -268,6 +284,46 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
       setGenerationError(error instanceof Error ? error.message : 'Failed to generate plan. Please try again.');
     } finally {
       setGeneratingPlan(null);
+    }
+  };
+
+  // Generate ARASAAC visuals for a goal
+  const generateGoalVisuals = async (
+    subcategoryId: string,
+    areaName: string,
+    subcategoryName: string,
+    description: string
+  ) => {
+    setGeneratingVisuals(subcategoryId);
+    setVisualsError(null);
+
+    try {
+      const response = await fetch('/api/generate-goal-visuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goalName: subcategoryName,
+          goalDescription: description,
+          areaName,
+          plan: progress[subcategoryId]?.plan || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate visuals');
+      }
+
+      setGoalVisuals(prev => ({
+        ...prev,
+        [subcategoryId]: data.visuals,
+      }));
+    } catch (error) {
+      console.error('Error generating goal visuals:', error);
+      setVisualsError(error instanceof Error ? error.message : 'Failed to generate visuals.');
+    } finally {
+      setGeneratingVisuals(null);
     }
   };
 
@@ -689,9 +745,31 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         ) : hasPlan ? (
                                           <div>
                                             <div className="bg-white rounded-lg p-3 prose prose-xs max-w-none text-gray-700">
-                                              <ReactMarkdown>{hasPlan}</ReactMarkdown>
+                                              <ReactMarkdown components={{
+                                                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 underline decoration-sky-300 hover:decoration-sky-500 transition-colors">{children}</a>,
+                                              }}>{hasPlan}</ReactMarkdown>
                                             </div>
                                             <div className="flex flex-wrap justify-end gap-2 mt-2">
+                                              <button
+                                                onClick={() => generateGoalVisuals(subcategory.id, area.name, subcategory.name, `${category.name} - ${subcategory.code}: ${subcategory.name}`)}
+                                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border transition-colors ${
+                                                  goalVisuals[subcategory.id]
+                                                    ? 'bg-primary-50 text-primary-600 hover:bg-primary-100 border-primary-200'
+                                                    : 'bg-white text-primary-600 hover:bg-primary-50 border-primary-200'
+                                                }`}
+                                              >
+                                                {generatingVisuals === subcategory.id ? (
+                                                  <Loader2 className="h-3 w-3 me-1 animate-spin" />
+                                                ) : (
+                                                  <Image className="h-3 w-3 me-1" />
+                                                )}
+                                                {generatingVisuals === subcategory.id
+                                                  ? t('studentAET.generatingVisuals')
+                                                  : goalVisuals[subcategory.id]
+                                                    ? t('studentAET.regenerateVisuals')
+                                                    : t('studentAET.generateArasaacVisuals')
+                                                }
+                                              </button>
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
                                                 className="inline-flex items-center px-2 py-1 bg-ai-50 text-ai-600 rounded text-xs font-medium hover:bg-ai-100 border border-ai-200"
@@ -727,6 +805,49 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 Delete
                                               </button>
                                             </div>
+
+                                            {/* ARASAAC Goal Visuals Display */}
+                                            {goalVisuals[subcategory.id] && (
+                                              <div className="mt-3 border-t border-gray-200 pt-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                  <div className="flex items-center gap-1.5">
+                                                    <Image className="h-3.5 w-3.5 text-primary-500" />
+                                                    <span className="text-xs font-medium text-gray-700">{t('studentAET.arasaacVisuals')}</span>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => setGoalVisuals(prev => { const updated = { ...prev }; delete updated[subcategory.id]; return updated; })}
+                                                    className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 border border-red-200"
+                                                  >
+                                                    <X className="h-2.5 w-2.5 me-1" />
+                                                    {t('studentAET.clearVisuals')}
+                                                  </button>
+                                                </div>
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                                  {goalVisuals[subcategory.id].map((visual, idx) => (
+                                                    <div key={idx} className="bg-white rounded-lg border border-gray-200 p-2 text-center">
+                                                      {visual.pictogramUrl ? (
+                                                        <img
+                                                          src={visual.pictogramUrl}
+                                                          alt={visual.label}
+                                                          className="w-16 h-16 mx-auto object-contain"
+                                                        />
+                                                      ) : (
+                                                        <div className="w-16 h-16 mx-auto bg-gray-100 rounded flex items-center justify-center">
+                                                          <Image className="h-6 w-6 text-gray-300" />
+                                                        </div>
+                                                      )}
+                                                      <p className="text-[10px] font-medium text-gray-700 mt-1 truncate">{visual.label}</p>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                            {visualsError && generatingVisuals === null && (
+                                              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                                                <AlertCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+                                                <p className="text-xs text-red-600">{visualsError}</p>
+                                              </div>
+                                            )}
                                           </div>
                                         ) : showInstructions === subcategory.id ? (
                                           <div className="space-y-3">

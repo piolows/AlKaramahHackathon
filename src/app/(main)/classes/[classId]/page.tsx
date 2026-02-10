@@ -82,6 +82,15 @@ interface CurrentGoal {
   subcategory: Subcategory;
 }
 
+// Goal visual pictogram
+interface GoalVisual {
+  label: string;
+  searchWord: string;
+  alternativeWords: string[];
+  pictogramId: number | null;
+  pictogramUrl: string | null;
+}
+
 interface SavedLesson {
   id: string;
   curriculumArea: string;
@@ -110,6 +119,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [showInstructions, setShowInstructions] = useState<string | null>(null);
   const [customInstructions, setCustomInstructions] = useState<Record<string, string>>({});
   const [generationError, setGenerationError] = useState<string | null>(null);
+  
+  // ARASAAC goal visuals state
+  const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
+  const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
+  const [visualsError, setVisualsError] = useState<string | null>(null);
   
   // State for generating all plans
   const [generatingAllPlans, setGeneratingAllPlans] = useState(false);
@@ -154,7 +168,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     pictogramId: number | null;
     pictogramUrl: string | null;
   }[] | null>(null);
-  const [generatingVisuals, setGeneratingVisuals] = useState(false);
+  // const [generatingVisuals, setGeneratingVisuals] = useState(false);
   const [visualError, setVisualError] = useState<string | null>(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [cardSearchQuery, setCardSearchQuery] = useState('');
@@ -473,6 +487,48 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       setGenerationError(error instanceof Error ? error.message : 'Failed to generate plan');
     } finally {
       setGeneratingPlan(null);
+    }
+  };
+
+  // Generate ARASAAC visuals for a goal
+  const generateGoalVisuals = async (
+    subcategoryId: string,
+    areaName: string,
+    subcategoryName: string,
+    description: string,
+    studentId: string
+  ) => {
+    const key = `${studentId}-${subcategoryId}`;
+    setGeneratingVisuals(key);
+    setVisualsError(null);
+
+    try {
+      const response = await fetch('/api/generate-goal-visuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goalName: subcategoryName,
+          goalDescription: description,
+          areaName,
+          plan: studentProgress[studentId]?.[subcategoryId]?.plan || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate visuals');
+      }
+
+      setGoalVisuals(prev => ({
+        ...prev,
+        [key]: data.visuals,
+      }));
+    } catch (error) {
+      console.error('Error generating goal visuals:', error);
+      setVisualsError(error instanceof Error ? error.message : 'Failed to generate visuals.');
+    } finally {
+      setGeneratingVisuals(null);
     }
   };
 
@@ -2440,9 +2496,31 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 ) : hasPlan ? (
                                   <div>
                                     <div className="prose prose-sm max-w-none text-gray-700 mb-4 max-h-48 overflow-y-auto">
-                                      <ReactMarkdown>{hasPlan}</ReactMarkdown>
+                                      <ReactMarkdown components={{
+                                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 underline decoration-sky-300 hover:decoration-sky-500 transition-colors">{children}</a>,
+                                      }}>{hasPlan}</ReactMarkdown>
                                     </div>
                                     <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-gray-100">
+                                      <button
+                                        onClick={() => goalKey && generateGoalVisuals(displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.subcategory.name, `${displayedGoal.category.name} - ${displayedGoal.subcategory.code}: ${displayedGoal.subcategory.name}`, student.id)}
+                                        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                          goalVisuals[goalKey!]
+                                            ? 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+                                            : 'bg-white text-primary-600 hover:bg-primary-50 border border-primary-200'
+                                        }`}
+                                      >
+                                        {generatingVisuals === goalKey ? (
+                                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                        ) : (
+                                          <ImageIcon className="h-4 w-4 mr-1" />
+                                        )}
+                                        {generatingVisuals === goalKey
+                                          ? t('classDetail.generatingVisuals')
+                                          : goalVisuals[goalKey!]
+                                            ? t('classDetail.regenerateVisuals')
+                                            : t('classDetail.generateArasaacVisuals')
+                                        }
+                                      </button>
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-3 py-1.5 bg-ai-50 text-ai-600 rounded-lg text-sm font-medium hover:bg-ai-100"
@@ -2468,6 +2546,49 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         Delete
                                       </button>
                                     </div>
+
+                                    {/* ARASAAC Goal Visuals Display */}
+                                    {goalVisuals[goalKey!] && (
+                                      <div className="mt-3 border-t border-gray-200 pt-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="flex items-center gap-1.5">
+                                            <ImageIcon className="h-4 w-4 text-primary-500" />
+                                            <span className="text-sm font-medium text-gray-700">{t('classDetail.arasaacVisuals')}</span>
+                                          </div>
+                                          <button
+                                            onClick={() => setGoalVisuals(prev => { const updated = { ...prev }; delete updated[goalKey!]; return updated; })}
+                                            className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 border border-red-200"
+                                          >
+                                            <X className="h-3 w-3 mr-1" />
+                                            {t('classDetail.clearVisuals')}
+                                          </button>
+                                        </div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                          {goalVisuals[goalKey!].map((visual, idx) => (
+                                            <div key={idx} className="bg-white rounded-lg border border-gray-200 p-2 text-center">
+                                              {visual.pictogramUrl ? (
+                                                <img
+                                                  src={visual.pictogramUrl}
+                                                  alt={visual.label}
+                                                  className="w-14 h-14 mx-auto object-contain"
+                                                />
+                                              ) : (
+                                                <div className="w-14 h-14 mx-auto bg-gray-100 rounded flex items-center justify-center">
+                                                  <ImageIcon className="h-5 w-5 text-gray-300" />
+                                                </div>
+                                              )}
+                                              <p className="text-[10px] font-medium text-gray-700 mt-1 truncate">{visual.label}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {visualsError && generatingVisuals === null && (
+                                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                                        <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                                        <p className="text-xs text-red-600">{visualsError}</p>
+                                      </div>
+                                    )}
                                   </div>
                                 ) : showInstructions === goalKey ? (
                                   <div className="space-y-4">
