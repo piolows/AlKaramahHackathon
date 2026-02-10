@@ -127,7 +127,7 @@ Return ONLY valid JSON, nothing else. No markdown code fences. Use this exact fo
 
 Rules:
 - ${targetSteps} steps
-- Labels should be 1-3 words, child-friendly
+- Labels should be 1-3 words, child-friendly, in ENGLISH AND ARABIC ([English version] / [Arabic version])
 - searchWord should be ONE simple, common English word (noun or verb)
 - alternativeWords: 2-3 fallback single words
 - Think about what pictograms would actually exist
@@ -158,7 +158,7 @@ Return ONLY valid JSON, nothing else. No markdown code fences. Use this exact fo
 
 Rules:
 - ${targetSteps} steps
-- Labels should be 1-3 words, child-friendly
+- Labels should be 1-3 words, child-friendly, in ENGLISH AND ARABIC ([English version] / [Arabic version])
 - searchWord should be ONE simple, common English word (noun or verb)
 - alternativeWords: 2-3 fallback single words
 - Think about what pictograms would actually exist: common objects, actions, body parts, emotions, school items
@@ -197,7 +197,7 @@ Return ONLY valid JSON, nothing else. No markdown code fences. Use this exact fo
 
 Rules:
 - 6-12 steps maximum
-- Labels should be 1-3 words, child-friendly
+- Labels should be 1-3 words, child-friendly, in ENGLISH AND ARABIC ([English version] / [Arabic version])
 - searchWord should be ONE simple, common English word (noun or verb) — this will be used to search a pictogram database
 - alternativeWords: 2-3 fallback single words if the first doesn't match
 - Think about what pictograms would actually exist: common objects, actions, body parts, emotions, school items

@@ -83,7 +83,7 @@ Think about:
 ## RESPONSE FORMAT
 
 Return ONLY a valid JSON array. Each item must have:
-- "label": A short display label (1-3 words)
+- "label": A short display label (1-3 words), in ENGLISH AND ARABIC ([English version] / [Arabic version])
 - "searchWord": The best single ARASAAC search keyword (simple, concrete English word)
 - "alternativeWords": Array of 2-3 alternative search words if the first doesn't find a match
 
