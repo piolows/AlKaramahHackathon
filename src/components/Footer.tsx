@@ -21,15 +21,15 @@ export default function Footer() {
           {/* Tagline */}
           <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--accent-400)' }}>
             <Heart className="h-4 w-4" style={{ color: 'var(--danger-300)' }} />
-            <span>Built with love for special education teachers</span>
+            <span>{t('footer.tagline')}</span>
           </div>
         </div>
 
         {/* Divider & Bottom */}
         <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--primary-400)' }}>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-center md:text-left" style={{ color: 'var(--accent-400)' }}>
-            <p>Based on the Autism Education Trust (AET) Progression Framework</p>
-            <p>© {currentYear} TrainTracks. Created for Al Karamah Hackathon.</p>
+            <p>{t('footer.aetBased')}</p>
+            <p>© {currentYear} {t('footer.copyright')}</p>
           </div>
         </div>
       </div>

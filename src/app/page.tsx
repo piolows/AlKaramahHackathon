@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Globe } from 'lucide-react';
+import { useLanguage, Locale } from '@/lib/i18n';
 
 interface Particle {
   id: number;
@@ -16,12 +18,31 @@ interface Particle {
 
 export default function HomePage() {
   const router = useRouter();
+  const { locale, setLocale } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
   const particleIdRef = useRef(0);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
   const totalSlides = 3;
+
+  // Close language dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
+        setShowLangDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLanguageChange = (newLocale: Locale) => {
+    setLocale(newLocale);
+    setShowLangDropdown(false);
+  };
 
   // Auto-advance carousel every 6 seconds
   useEffect(() => {
@@ -431,7 +452,113 @@ export default function HomePage() {
         </aside>
 
         {/* Login Form Section */}
-        <section className="login-form-section">
+        <section className="login-form-section" style={{ position: 'relative' }}>
+          {/* Language Switcher - Top Right */}
+          <div 
+            ref={langDropdownRef}
+            style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 50, display: 'flex', alignItems: 'center' }}
+          >
+            <button
+              onClick={() => setShowLangDropdown(!showLangDropdown)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'transparent',
+                color: '#7a8492',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '0.75rem',
+                fontWeight: 500,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#e8ebe6';
+                e.currentTarget.style.color = '#618232';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#7a8492';
+              }}
+              aria-label="Change language"
+            >
+              <span className="mx-1.5">{locale === 'en' ? 'EN' : 'ع'}</span>
+              <Globe style={{ width: '20px', height: '20px' }} />
+            </button>
+
+            {showLangDropdown && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: '4px',
+                width: '160px',
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                border: '1px solid #e8ebe6',
+                padding: '4px 0',
+                zIndex: 50,
+              }}>
+                <button
+                  onClick={() => handleLanguageChange('en')}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: locale === 'en' ? '#f9fbf6' : 'transparent',
+                    color: locale === 'en' ? '#618232' : '#2f3f58',
+                    fontWeight: locale === 'en' ? 600 : 400,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease',
+                    fontFamily: "'Poppins', sans-serif",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fbf6'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = locale === 'en' ? '#f9fbf6' : 'transparent'}
+                >
+                  <span>EN</span>
+                  <span>English</span>
+                  {locale === 'en' && (
+                    <span style={{ marginLeft: 'auto', width: '8px', height: '8px', background: '#96c652', borderRadius: '50%' }} />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleLanguageChange('ar')}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: locale === 'ar' ? '#f9fbf6' : 'transparent',
+                    color: locale === 'ar' ? '#618232' : '#2f3f58',
+                    fontWeight: locale === 'ar' ? 600 : 400,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease',
+                    fontFamily: "'Poppins', sans-serif",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fbf6'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = locale === 'ar' ? '#f9fbf6' : 'transparent'}
+                >
+                  <span>ع</span>
+                  <span>العربية</span>
+                  {locale === 'ar' && (
+                    <span style={{ marginLeft: 'auto', width: '8px', height: '8px', background: '#96c652', borderRadius: '50%' }} />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="login-form-container">
             <div className="form-header">
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0', letterSpacing: '-0.3px' }}>

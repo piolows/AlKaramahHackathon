@@ -1661,7 +1661,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <ChevronDown className={`h-3 w-3 transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {showExportDropdown && (
-                    <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <div className="absolute end-0 mt-2 w-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <button
                         onClick={handlePrint}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -2120,7 +2120,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showVisualExportDropdown ? 'rotate-180' : ''}`} />
                       </button>
                       {showVisualExportDropdown && (
-                        <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                        <div className="absolute end-0 mt-2 w-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                           <button
                             onClick={handlePrint}
                             className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

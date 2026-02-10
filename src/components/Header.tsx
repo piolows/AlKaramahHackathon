@@ -85,13 +85,16 @@ export default function Header({ showNavLinks = true }: HeaderProps) {
             )}
 
             {/* Language Switcher */}
-            <div className="relative ms-2" ref={dropdownRef}>
+            <div className="relative ms-2 flex items-center" ref={dropdownRef}>
               <button
                 onClick={() => setShowLangDropdown(!showLangDropdown)}
-                className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-0.5 px-2 py-1.5 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-gray-50 transition-colors"
                 title={t('common.language')}
                 aria-label={t('common.language')}
               >
+                <span className="text-xs font-medium mx-1.5">
+                  {locale === 'en' ? 'EN' : 'ع'}
+                </span>
                 <Globe className="h-5 w-5" />
               </button>
 
