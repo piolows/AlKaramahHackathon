@@ -23,7 +23,7 @@ import {
   SkipForward,
   Image
 } from 'lucide-react';
-import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
+import { AET_FRAMEWORK, AET_FRAMEWORK_AR, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
 import { useLanguage } from '@/lib/i18n';
 
@@ -82,7 +82,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
   const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
   const [visualsError, setVisualsError] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const framework = locale === 'ar' ? AET_FRAMEWORK_AR : AET_FRAMEWORK;
+  const [planLanguage, setPlanLanguage] = useState<'en' | 'ar'>('en');
 
   // Fetch student and progress data
   useEffect(() => {
@@ -119,6 +121,11 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     }
     fetchData();
   }, [studentId]);
+
+  // Sync plan language with site locale
+  useEffect(() => {
+    setPlanLanguage(locale);
+  }, [locale]);
 
   // Save progress to database
   async function saveProgress(subcategoryId: string, data: SubcategoryProgress) {
@@ -246,6 +253,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
             areaName: areaName,
           },
           customInstructions: customInstructions[subcategoryId] || undefined,
+          outputLanguage: planLanguage,
         }),
       });
 
@@ -329,7 +337,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   };
 
   // Calculate overall progress
-  const totalSubcategories = AET_FRAMEWORK.areas.reduce((acc, area) => 
+  const totalSubcategories = framework.areas.reduce((acc, area) => 
     acc + area.categories.reduce((catAcc, cat) => catAcc + cat.subcategories.length, 0), 0
   );
   const completedSubcategories = Object.values(progress).filter(p => p.completed).length;
@@ -366,7 +374,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   }
   
   const getCurrentGoal = (): GoalInfo | null => {
-    for (const area of AET_FRAMEWORK.areas) {
+    for (const area of framework.areas) {
       for (const category of area.categories) {
         for (const subcategory of category.subcategories) {
           const subProgress = progress[subcategory.id];
@@ -515,7 +523,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
 
         {/* AET Framework Areas */}
         <div className="space-y-4">
-          {AET_FRAMEWORK.areas.map((area) => {
+          {framework.areas.map((area) => {
             const colors = COLOR_CLASSES[area.color];
             const isAreaExpanded = expandedAreas.includes(area.id);
             const areaProgressData = getAreaProgress(area);
@@ -866,7 +874,21 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="w-full h-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-xs bg-white"
                                               />
                                             </div>
-                                            
+
+                                            <div>
+                                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                                {t('common.outputLanguage')}
+                                              </label>
+                                              <select
+                                                value={planLanguage}
+                                                onChange={(e) => setPlanLanguage(e.target.value as 'en' | 'ar')}
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                              >
+                                                <option value="en">{t('common.english')}</option>
+                                                <option value="ar">{t('common.arabic')}</option>
+                                              </select>
+                                            </div>
+
                                             <div className="flex justify-end gap-2">
                                               <button
                                                 onClick={() => setShowInstructions(null)}
@@ -891,7 +913,18 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 Get goal guidance for <strong>{subcategory.name}</strong>
                                               </p>
                                             </div>
-                                            
+
+                                            <div className="flex justify-center">
+                                              <select
+                                                value={planLanguage}
+                                                onChange={(e) => setPlanLanguage(e.target.value as 'en' | 'ar')}
+                                                className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                              >
+                                                <option value="en">{t('common.english')}</option>
+                                                <option value="ar">{t('common.arabic')}</option>
+                                              </select>
+                                            </div>
+
                                             <div className="flex flex-wrap justify-center gap-2">
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
@@ -940,8 +973,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         {/* Framework Stats */}
         <div className="mt-8 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="text-center text-sm text-gray-500">
-            AET Progression Framework • {AET_FRAMEWORK.areas.length} Areas • {
-              AET_FRAMEWORK.areas.reduce((acc, area) => acc + area.categories.length, 0)
+            AET Progression Framework • {framework.areas.length} Areas • {
+              framework.areas.reduce((acc, area) => acc + area.categories.length, 0)
             } Categories • {totalSubcategories} Subcategories
           </div>
         </div>
