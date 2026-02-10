@@ -37,9 +37,13 @@ import {
   Plus,
   Search,
   GripVertical,
-  Upload
+  Upload,
+  FileDown,
+  FileType,
+  Presentation
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
+import { exportToWord, exportToPowerPoint, exportToPDF, generateFilename } from '@/lib/export-utils';
 import { Breadcrumb, LoadingSpinner } from '@/components';
 import { useLanguage } from '@/lib/i18n';
 
@@ -173,6 +177,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [uploadCardImage, setUploadCardImage] = useState<string | null>(null);
   const [uploadingCard, setUploadingCard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Export dropdown state
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showVisualExportDropdown, setShowVisualExportDropdown] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
+  const visualExportDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -1037,8 +1048,75 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     reader.readAsDataURL(file);
   };
 
-  // Print lesson + visual schedule
-  const printVisualSchedule = () => {
+  // Close export dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
+      }
+      if (visualExportDropdownRef.current && !visualExportDropdownRef.current.contains(event.target as Node)) {
+        setShowVisualExportDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Get current lesson data for export
+  const getCurrentLessonData = () => {
+    const currentLesson = savedLessons.find(l => l.id === currentLessonId);
+    return {
+      title: currentLesson ? `${currentLesson.curriculumArea}: ${currentLesson.lessonTopic}` : '',
+      curriculumArea: currentLesson?.curriculumArea || lessonForm.curriculumArea,
+      lessonTopic: currentLesson?.lessonTopic || lessonForm.lessonTopic,
+      learningObjective: currentLesson?.learningObjective || lessonForm.learningObjective,
+      content: generatedLesson || '',
+      visualSteps: visualSteps,
+      className: classData?.name,
+      createdAt: currentLesson?.createdAt,
+    };
+  };
+
+  // Export handlers
+  const handleExportWord = async () => {
+    setExporting(true);
+    setShowExportDropdown(false);
+    setShowVisualExportDropdown(false);
+    try {
+      const data = getCurrentLessonData();
+      await exportToWord(data, generateFilename(data));
+    } catch (error) {
+      console.error('Export to Word failed:', error);
+      alert('Failed to export to Word. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPowerPoint = async () => {
+    setExporting(true);
+    setShowExportDropdown(false);
+    setShowVisualExportDropdown(false);
+    try {
+      const data = getCurrentLessonData();
+      await exportToPowerPoint(data, generateFilename(data));
+    } catch (error) {
+      console.error('Export to PowerPoint failed:', error);
+      alert('Failed to export to PowerPoint. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    setShowExportDropdown(false);
+    setShowVisualExportDropdown(false);
+    exportToPDF();
+  };
+
+  const handlePrint = () => {
+    setShowExportDropdown(false);
+    setShowVisualExportDropdown(false);
     window.print();
   };
 
@@ -1384,13 +1462,54 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <span>{t('classDetail.history')} ({savedLessons.length})</span>
                   </button>
                 )}
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>{t('common.print')}</span>
-                </button>
+                {/* Export Dropdown */}
+                <div className="relative" ref={exportDropdownRef}>
+                  <button
+                    onClick={() => setShowExportDropdown(!showExportDropdown)}
+                    disabled={exporting}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    {exporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="h-4 w-4" />
+                    )}
+                    <span>{exporting ? t('common.exporting') : t('common.exportOptions')}</span>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showExportDropdown && (
+                    <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={handlePrint}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Printer className="h-4 w-4" />
+                        {t('common.print')}
+                      </button>
+                      <button
+                        onClick={handleExportPDF}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {t('common.exportToPDF')}
+                      </button>
+                      <button
+                        onClick={handleExportWord}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <FileType className="h-4 w-4" />
+                        {t('common.exportToWord')}
+                      </button>
+                      <button
+                        onClick={handleExportPowerPoint}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Presentation className="h-4 w-4" />
+                        {t('common.exportToPowerPoint')}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowLessonModal(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
@@ -1743,13 +1862,54 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       <RefreshCw className={`h-3 w-3 ${generatingVisuals ? 'animate-spin' : ''}`} />
                       {t('classDetail.regenerateAll')}
                     </button>
-                    <button
-                      onClick={printVisualSchedule}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors"
-                    >
-                      <Printer className="h-3 w-3" />
-                      {t('common.print')}
-                    </button>
+                    {/* Visual Schedule Export Dropdown */}
+                    <div className="relative" ref={visualExportDropdownRef}>
+                      <button
+                        onClick={() => setShowVisualExportDropdown(!showVisualExportDropdown)}
+                        disabled={exporting}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      >
+                        {exporting ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <FileDown className="h-3 w-3" />
+                        )}
+                        <span>{exporting ? t('common.exporting') : t('common.exportOptions')}</span>
+                        <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showVisualExportDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showVisualExportDropdown && (
+                        <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <button
+                            onClick={handlePrint}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <Printer className="h-4 w-4" />
+                            {t('common.print')}
+                          </button>
+                          <button
+                            onClick={handleExportPDF}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {t('common.exportToPDF')}
+                          </button>
+                          <button
+                            onClick={handleExportWord}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FileType className="h-4 w-4" />
+                            {t('common.exportToWord')}
+                          </button>
+                          <button
+                            onClick={handleExportPowerPoint}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <Presentation className="h-4 w-4" />
+                            {t('common.exportToPowerPoint')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <button
                       onClick={() => setVisualSteps(null)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

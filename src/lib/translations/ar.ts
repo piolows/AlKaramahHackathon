@@ -27,6 +27,11 @@ export const ar = {
     language: 'اللغة',
     english: 'English',
     arabic: 'العربية',
+    exportOptions: 'خيارات التصدير',
+    exportToWord: 'تصدير إلى Word',
+    exportToPowerPoint: 'تصدير إلى PowerPoint',
+    exportToPDF: 'تصدير كـ PDF',
+    exporting: '...جاري التصدير',
   },
 
   // Header / Nav

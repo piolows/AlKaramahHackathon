@@ -27,6 +27,11 @@ export const en = {
     language: 'Language',
     english: 'English',
     arabic: 'Arabic',
+    exportOptions: 'Export Options',
+    exportToWord: 'Export to Word',
+    exportToPowerPoint: 'Export to PowerPoint',
+    exportToPDF: 'Export as PDF',
+    exporting: 'Exporting...',
   },
 
   // Header / Nav
