@@ -56,7 +56,7 @@ export default function Header({ showNavLinks = true }: HeaderProps) {
           {/* Logo & Brand - matching login page style */}
           <Link href="/classes" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="py-4">
-              <img  src="./LogoTT.svg" width="150"/>
+              <img  src="/LogoTT.svg" width="150"/>
           </div>
           </Link>
           {/* Navigation + Language Switcher */}
