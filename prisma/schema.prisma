@@ -64,10 +64,11 @@ model StudentProgress {
   studentId      String
   student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   
-  subcategoryId  String   // References the AET framework subcategory ID (e.g., "ci-1-1", "su-2-3")
+  subcategoryId String   // References the AET framework subcategory ID (e.g., "ci-1-1", "su-2-3")
   level          Int      @default(0)  // 0 = not started, 1-4 = progression levels
   completed      Boolean  @default(false)
   plan           String?  // Generated or manual plan text
+  goalVisuals    String?  // JSON string of visual cards for this goal
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
