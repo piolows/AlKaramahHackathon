@@ -312,6 +312,11 @@ export const en = {
     goalCompleted: 'Goal Completed!',
     movingToNext: 'Moving to next goal...',
     generateLessonFirst: 'Generate or select a class lesson first',
+    generatingVisuals: 'Generating visuals...',
+    arasaacVisuals: 'ARASAAC Visuals',
+    generateArasaacVisuals: 'Generate ARASAAC Visuals',
+    regenerateVisuals: 'Regenerate Visuals',
+    clearVisuals: 'Clear',
   },
 
   // Student Profile page
@@ -387,6 +392,11 @@ export const en = {
     subcategories: 'Subcategories',
     aetProgress: 'AET Progress',
     completed: 'completed',
+    generatingVisuals: 'Generating ARASAAC visuals...',
+    arasaacVisuals: 'ARASAAC Visuals',
+    generateArasaacVisuals: 'Generate ARASAAC Visuals',
+    regenerateVisuals: 'Regenerate Visuals',
+    clearVisuals: 'Clear',
   },
 
   // Loading states

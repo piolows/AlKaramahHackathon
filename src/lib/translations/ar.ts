@@ -312,6 +312,11 @@ export const ar = {
     goalCompleted: 'تم إكمال الهدف!',
     movingToNext: '...الانتقال إلى الهدف التالي',
     generateLessonFirst: 'أنشئ أو اختر درس فصل أولاً',
+    generatingVisuals: '...جاري إنشاء الصور',
+    arasaacVisuals: 'صور ARASAAC',
+    generateArasaacVisuals: 'إنشاء صور ARASAAC',
+    regenerateVisuals: 'إعادة إنشاء الصور',
+    clearVisuals: 'مسح',
   },
 
   // Student Profile page
@@ -387,6 +392,11 @@ export const ar = {
     subcategories: 'فئات فرعية',
     aetProgress: 'تقدم AET',
     completed: 'مكتمل',
+    generatingVisuals: '...جاري إنشاء صور ARASAAC',
+    arasaacVisuals: 'صور ARASAAC',
+    generateArasaacVisuals: 'إنشاء صور ARASAAC',
+    regenerateVisuals: 'إعادة إنشاء الصور',
+    clearVisuals: 'مسح',
   },
 
   // Loading states
