@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/components/Header';
 
 interface Bubble {
   id: number;
@@ -92,26 +93,8 @@ export default function LoginPage() {
         />
       ))}
 
-      {/* Logo and Title - Top Left */}
-      <div className="p-5 flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, var(--primary-300) 0%, var(--primary-400) 50%, var(--dark-blue-600) 100%)' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 12C4 12 8 6 12 6C16 6 20 12 20 12" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            <path d="M4 12C4 12 8 18 12 18C16 18 20 12 20 12" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-            <circle cx="6" cy="12" r="2" fill="white" />
-            <circle cx="12" cy="8" r="2" fill="#F97316" />
-            <circle cx="18" cy="12" r="2" fill="white" />
-          </svg>
-        </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--dark-blue-600)' }}>
-            TrainTrack
-          </h1>
-          <p className="text-xs" style={{ color: 'var(--primary-400)' }}>
-            Empowering Teachers
-          </p>
-        </div>
-      </div>
+      {/* Header without navigation links */}
+      <Header showNavLinks={false} />
 
       {/* Centered Login Form */}
       <div className="min-h-screen flex items-center justify-center px-8">
