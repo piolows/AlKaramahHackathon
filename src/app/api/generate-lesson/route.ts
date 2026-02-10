@@ -38,12 +38,13 @@ interface GenerateLessonRequest {
   curriculumArea: string; // e.g., "Mathematics", "Literacy", "Understanding the World"
   learningObjective: string; // The single learning intention
   additionalNotes?: string;
+  outputLanguage?: string; // "en" or "ar"
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateLessonRequest = await request.json();
-    const { className, ageRange, students, lessonTopic, curriculumArea, learningObjective, additionalNotes } = body;
+    const { className, ageRange, students, lessonTopic, curriculumArea, learningObjective, additionalNotes, outputLanguage } = body;
 
     const apiKey = getGeminiApiKey();
     
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the prompt for unified lesson plan
-    const prompt = buildLessonPrompt(className, ageRange, students, lessonTopic, curriculumArea, learningObjective, additionalNotes);
+    const prompt = buildLessonPrompt(className, ageRange, students, lessonTopic, curriculumArea, learningObjective, additionalNotes, outputLanguage);
 
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
@@ -143,7 +144,8 @@ function buildLessonPrompt(
   lessonTopic: string,
   curriculumArea: string,
   learningObjective: string,
-  additionalNotes?: string
+  additionalNotes?: string,
+  outputLanguage?: string
 ): string {
   // Determine phase from age range
   const minAge = parseInt(ageRange.split('-')[0]);
@@ -169,7 +171,12 @@ ${s.teacherNotes ? `- **Notes:** ${s.teacherNotes}` : ''}
 ${s.currentGoals?.length ? `- **Current AET Goal:** ${s.currentGoals.map(g => `${g.areaName} > ${g.categoryName} > ${g.subcategoryName} (Level ${g.level}/4)`).join('; ')}` : ''}`;
   }).join('\n');
 
-  return `You are an expert special education teacher specializing in autism education. You follow the Autism Education Trust (AET) framework and understand the Attention Autism methodology (Gina Davies).
+  const isArabic = outputLanguage === 'ar';
+  const langDirective = isArabic
+    ? `\n\n## ⚠️ LANGUAGE REQUIREMENT — MANDATORY ⚠️\n\n**You MUST write the ENTIRE output EXCLUSIVELY in Arabic (العربية). This is non-negotiable.**\n- Every single word of the output must be in Arabic — headings, section titles, phase/step names, bullet points, descriptions, labels, resource descriptions, success criteria, EVERYTHING.\n- Student names must be transliterated into Arabic script (e.g., "John" → "جون", "Sarah" → "سارة", "Mohammed" → "محمد"). Do NOT leave any name in Latin/English script.\n- Do NOT mix languages. There must be ZERO English words anywhere in the output.\n- The only exceptions are: {{PLATFORM|search terms}} resource tokens which must keep their exact token format, and platform names inside those tokens.\n- All markdown formatting (bold, headers, checkboxes) should be preserved but all text within them must be Arabic.\n\n`
+    : '';
+
+  return `${langDirective}You are an expert special education teacher specializing in autism education. You follow the Autism Education Trust (AET) framework and understand the Attention Autism methodology (Gina Davies).
 
 ## CONTEXT
 
@@ -448,7 +455,9 @@ EXAMPLES:
 
 ---
 
-Be specific, practical, and ensure the plan is immediately usable. Focus on autism-friendly, low-cognitive-load approaches with heavy use of visuals, repetition, and real objects. Keep the total plan concise — every bullet should earn its place.`;
+Be specific, practical, and ensure the plan is immediately usable. Focus on autism-friendly, low-cognitive-load approaches with heavy use of visuals, repetition, and real objects. Keep the total plan concise — every bullet should earn its place.
+
+${isArabic ? '**تذكير نهائي: يجب أن يكون كل النص بالعربية حصرياً. لا تكتب أي كلمة بالإنجليزية. ترجم أسماء الطلاب إلى الحروف العربية. جميع العناوين والمسميات والأوصاف يجب أن تكون بالعربية فقط.**' : ''}`;
 }
 
 function calculateAge(dateOfBirth: string): number {

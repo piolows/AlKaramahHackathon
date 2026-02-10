@@ -191,13 +191,19 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     curriculumArea: 'Mathematics',
     lessonTopic: '',
     learningObjective: '',
-    additionalNotes: ''
+    additionalNotes: '',
+    outputLanguage: locale as string
   });
   
   // State for saved lessons
   const [savedLessons, setSavedLessons] = useState<SavedLesson[]>([]);
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
   const [showLessonHistory, setShowLessonHistory] = useState(false);
+
+  // Sync outputLanguage with site locale when it changes (e.g. after hydration from localStorage)
+  useEffect(() => {
+    setLessonForm(prev => ({ ...prev, outputLanguage: locale }));
+  }, [locale]);
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
   
   // State for lesson editing/refining
@@ -755,6 +761,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           curriculumArea: lessonForm.curriculumArea,
           learningObjective: lessonForm.learningObjective,
           additionalNotes: lessonForm.additionalNotes || undefined,
+          outputLanguage: lessonForm.outputLanguage,
         }),
       });
 
@@ -786,7 +793,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       setGeneratedLesson(data.lesson);
       setShowLessonModal(false);
       // Reset form for next use
-      setLessonForm({ curriculumArea: 'Mathematics', lessonTopic: '', learningObjective: '', additionalNotes: '' });
+      setLessonForm({ curriculumArea: 'Mathematics', lessonTopic: '', learningObjective: '', additionalNotes: '', outputLanguage: locale });
     } catch (error) {
       console.error('Error generating lesson:', error);
       setLessonError(error instanceof Error ? error.message : 'Failed to generate lesson');
@@ -1499,6 +1506,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('classDetail.outputLanguage')}
+                      </label>
+                      <select
+                        value={lessonForm.outputLanguage}
+                        onChange={(e) => setLessonForm(prev => ({ ...prev, outputLanguage: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value="en">{t('classDetail.outputLanguageEnglish')}</option>
+                        <option value="ar">{t('classDetail.outputLanguageArabic')}</option>
+                      </select>
                     </div>
 
                     <div className="bg-gray-50 rounded-lg p-4">
