@@ -464,7 +464,7 @@ export default function ClassesPage() {
                 }}>
                   <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 1rem 0', letterSpacing: '-0.2px' }}>Manage Your Classes</h2>
                   <p style={{ fontSize: '0.95rem', color: '#7a8492', margin: 0, lineHeight: 1.8 }}>
-                    Use the <Link href="/admin" style={{ color: '#618232', fontWeight: 600, textDecoration: 'none' }}>Admin Panel</Link> to add new classes, edit existing ones, and manage student enrollment. TrainTrack automatically generates personalized AET progression tracking and AI-powered learning plans for each student.
+                    Use the <Link href="/admin" style={{ color: '#618232', fontWeight: 600, textDecoration: 'none' }}>Admin Panel</Link> to add new classes, edit existing ones, and manage student enrollment. TrainTracks automatically generates personalized AET progression tracking and AI-powered learning plans for each student.
                   </p>
                 </div>
               </>

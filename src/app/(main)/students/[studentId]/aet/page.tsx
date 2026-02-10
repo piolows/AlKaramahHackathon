@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { Breadcrumb, LoadingSpinner } from '@/components';
+import { useLanguage } from '@/lib/i18n';
 
 interface Student {
   id: string;
@@ -81,6 +82,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
   const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
   const [visualsError, setVisualsError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   // Fetch student and progress data
   useEffect(() => {

@@ -57,7 +57,7 @@ const notoSansArabic = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "TrainTrack - Special Education Resource Hub",
+  title: "TrainTracks - Special Education Resource Hub",
   description: "Empowering teachers of autistic children with personalized learning plans based on the AET Progression Framework",
 };
 

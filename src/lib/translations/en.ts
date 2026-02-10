@@ -1,7 +1,7 @@
 export const en = {
   // Common
   common: {
-    appName: 'TrainTrack',
+    appName: 'TrainTracks',
     loading: 'Loading...',
     save: 'Save',
     cancel: 'Cancel',
@@ -45,7 +45,7 @@ export const en = {
   footer: {
     tagline: 'Built with love for special education teachers',
     aetBased: 'Based on the Autism Education Trust (AET) Progression Framework',
-    copyright: 'TrainTrack. Created for Al Karamah Hackathon.',
+    copyright: 'TrainTracks. Created for Al Karamah Hackathon.',
   },
 
   // Breadcrumb
@@ -104,7 +104,7 @@ export const en = {
     noClassesDesc: 'Get started by creating your first class in the admin panel.',
     goToAdmin: 'Go to Admin',
     manageTitle: 'Manage Your Classes',
-    manageDescription: 'Use the Admin Panel to add new classes, edit existing ones, and manage student enrollment. TrainTrack automatically generates personalized AET progression tracking and AI-powered learning plans for each student.',
+    manageDescription: 'Use the Admin Panel to add new classes, edit existing ones, and manage student enrollment. TrainTracks automatically generates personalized AET progression tracking and AI-powered learning plans for each student.',
     adminPanel: 'Admin Panel',
     manageDesc1: 'Use the',
     manageDesc2: 'Admin Panel',

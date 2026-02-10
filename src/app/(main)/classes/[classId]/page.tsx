@@ -122,7 +122,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   
   // ARASAAC goal visuals state
   const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
-  const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
+  const [generatingVisuals, setGeneratingVisuals] = useState<any>(null);
   const [visualsError, setVisualsError] = useState<string | null>(null);
   
   // State for generating all plans

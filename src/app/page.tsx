@@ -435,10 +435,11 @@ export default function HomePage() {
           <div className="login-form-container">
             <div className="form-header">
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0', letterSpacing: '-0.3px' }}>
-                Welcome Back
+                {/* Welcome Back */}
+                <img src="LogoTT.svg" />
               </h1>
               <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, fontWeight: 400 }}>
-                Sign in to your TrainTrack account
+                Sign in to your TrainTracks account
               </p>
             </div>
 
