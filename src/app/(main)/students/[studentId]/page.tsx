@@ -484,7 +484,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
   useEffect(() => {
     async function fetchStudent() {
       try {
-        const res = await fetch(`/api/students/${studentId}`);
+        const res = await fetch(`/api/students/${studentId}?lang=${locale}`);
         if (res.ok) {
           const data = await res.json();
           setStudent(data);
@@ -506,7 +506,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
       }
     }
     fetchStudent();
-  }, [studentId]);
+  }, [studentId, locale]);
 
   // Save changes to database
   async function saveChanges() {

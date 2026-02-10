@@ -91,7 +91,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     async function fetchData() {
       try {
         const [studentRes, progressRes] = await Promise.all([
-          fetch(`/api/students/${studentId}`),
+          fetch(`/api/students/${studentId}?lang=${locale}`),
           fetch(`/api/students/${studentId}/progress`)
         ]);
         
@@ -120,7 +120,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
       }
     }
     fetchData();
-  }, [studentId]);
+  }, [studentId, locale]);
 
   // Sync plan language with site locale
   useEffect(() => {

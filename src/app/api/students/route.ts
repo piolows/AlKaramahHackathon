@@ -57,6 +57,39 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const classId = searchParams.get('classId')
+    const lang = searchParams.get('lang')
+
+    // When Arabic, read display data from translated tables
+    if (lang === 'ar') {
+      const classFilter = classId ? `WHERE st.classId = '${classId}'` : ''
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT st.*, ct.name as className
+        FROM StudentTranslated st
+        LEFT JOIN ClassTranslated ct ON st.classId = ct.id
+        ${classFilter}
+        ORDER BY st.lastName ASC, st.firstName ASC
+      `)
+      return NextResponse.json(rows.map(row => ({
+        id: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        dateOfBirth: typeof row.dateOfBirth === 'string' ? row.dateOfBirth.split('T')[0] : new Date(row.dateOfBirth).toISOString().split('T')[0],
+        classId: row.classId,
+        className: row.className || '',
+        diagnoses: parseJsonArray(row.diagnoses),
+        strengths: parseJsonArray(row.strengths),
+        challenges: parseJsonArray(row.challenges),
+        interests: parseJsonArray(row.interests),
+        sensoryNeeds: parseJsonArray(row.sensoryNeeds),
+        communicationStyle: row.communicationStyle || '',
+        supportStrategies: parseJsonArray(row.supportStrategies),
+        triggers: parseJsonArray(row.triggers),
+        calmingStrategies: parseJsonArray(row.calmingStrategies),
+        teacherNotes: row.teacherNotes || '',
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      })))
+    }
 
     const students = await prisma.student.findMany({
       where: classId ? { classId } : undefined,

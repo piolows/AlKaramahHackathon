@@ -61,6 +61,46 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const lang = searchParams.get('lang')
+
+    // When Arabic, read display data from translated tables
+    if (lang === 'ar') {
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT st.*, ct.name as className
+        FROM StudentTranslated st
+        LEFT JOIN ClassTranslated ct ON st.classId = ct.id
+        WHERE st.id = '${id}'
+        LIMIT 1
+      `)
+      if (rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Student not found' },
+          { status: 404 }
+        )
+      }
+      const row = rows[0]
+      return NextResponse.json({
+        id: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        dateOfBirth: typeof row.dateOfBirth === 'string' ? row.dateOfBirth.split('T')[0] : new Date(row.dateOfBirth).toISOString().split('T')[0],
+        classId: row.classId,
+        className: row.className || '',
+        diagnoses: parseJsonArray(row.diagnoses),
+        strengths: parseJsonArray(row.strengths),
+        challenges: parseJsonArray(row.challenges),
+        interests: parseJsonArray(row.interests),
+        sensoryNeeds: parseJsonArray(row.sensoryNeeds),
+        communicationStyle: row.communicationStyle || '',
+        supportStrategies: parseJsonArray(row.supportStrategies),
+        triggers: parseJsonArray(row.triggers),
+        calmingStrategies: parseJsonArray(row.calmingStrategies),
+        teacherNotes: row.teacherNotes || '',
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      })
+    }
     
     const student = await prisma.student.findUnique({
       where: { id },

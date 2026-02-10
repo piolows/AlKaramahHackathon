@@ -24,7 +24,7 @@ interface Student {
 
 export default function ClassesPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +35,8 @@ export default function ClassesPage() {
     async function fetchData() {
       try {
         const [classesRes, studentsRes] = await Promise.all([
-          fetch('/api/classes'),
-          fetch('/api/students')
+          fetch(`/api/classes?lang=${locale}`),
+          fetch(`/api/students?lang=${locale}`)
         ]);
         const [classesData, studentsData] = await Promise.all([
           classesRes.json(),
@@ -51,7 +51,7 @@ export default function ClassesPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [locale]);
 
   const handleTabClick = (tab: 'classes' | 'admin') => {
     setActiveTab(tab);

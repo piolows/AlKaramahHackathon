@@ -89,15 +89,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [locale])
 
   async function fetchData() {
     setLoading(true)
     setError(null)
     try {
       const [classesRes, studentsRes] = await Promise.all([
-        fetch('/api/classes'),
-        fetch('/api/students')
+        fetch(`/api/classes?lang=${locale}`),
+        fetch(`/api/students?lang=${locale}`)
       ])
 
       if (!classesRes.ok || !studentsRes.ok) {

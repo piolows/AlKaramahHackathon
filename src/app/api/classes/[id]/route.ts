@@ -8,6 +8,37 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const lang = searchParams.get('lang')
+
+    // When Arabic, read display data from translated tables
+    if (lang === 'ar') {
+      const classRows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT * FROM ClassTranslated WHERE id = '${id}' LIMIT 1
+      `)
+      if (classRows.length === 0) {
+        return NextResponse.json(
+          { error: 'Class not found' },
+          { status: 404 }
+        )
+      }
+      const studentRows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT id, firstName, lastName, dateOfBirth
+        FROM StudentTranslated WHERE classId = '${id}'
+      `)
+      const c = classRows[0]
+      return NextResponse.json({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        ageRange: c.ageRange,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        students: studentRows,
+        studentCount: studentRows.length,
+        _count: { students: studentRows.length }
+      })
+    }
     
     const classData = await prisma.class.findUnique({
       where: { id },

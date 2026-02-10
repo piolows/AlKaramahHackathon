@@ -253,8 +253,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     async function fetchData() {
       try {
         const [classRes, studentsRes, lessonsRes, progressRes] = await Promise.all([
-          fetch(`/api/classes/${classId}`),
-          fetch(`/api/students?classId=${classId}`),
+          fetch(`/api/classes/${classId}?lang=${locale}`),
+          fetch(`/api/students?classId=${classId}&lang=${locale}`),
           fetch(`/api/classes/${classId}/lessons`),
           fetch(`/api/classes/${classId}/progress`)
         ]);
@@ -285,7 +285,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       }
     }
     fetchData();
-  }, [classId]);
+  }, [classId, locale]);
 
   // Get all goals as a flat list
   const getAllGoals = (): CurrentGoal[] => {

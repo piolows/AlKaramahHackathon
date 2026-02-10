@@ -2,8 +2,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // GET all classes with student count
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const lang = searchParams.get('lang')
+
+    // When Arabic, read display data from translated table
+    if (lang === 'ar') {
+      const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT ct.*, COUNT(s.id) as studentCount
+        FROM ClassTranslated ct
+        LEFT JOIN Student s ON s.classId = ct.id
+        GROUP BY ct.id
+        ORDER BY ct.name ASC
+      `)
+      return NextResponse.json(rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        ageRange: r.ageRange,
+        studentCount: Number(r.studentCount),
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt
+      })))
+    }
+
     const classes = await prisma.class.findMany({
       include: {
         _count: {
