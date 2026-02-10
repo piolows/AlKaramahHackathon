@@ -410,4 +410,46 @@ export const en = {
     classesLoading: 'Loading classes...',
     studentsLoading: 'Loading students...',
   },
+
+  // Homepage / Login
+  homepage: {
+    // Slide 1
+    slide1Title: 'Personalized Learning Plans for Every Student',
+    slide1Description: 'Empower teachers with AI-generated IEPs, collaborative tools, and evidence-based strategies tailored to each student\'s unique needs.',
+    highlight1: 'AI-Generated IEPs in Minutes',
+    highlight2: 'Evidence-Based Strategies',
+    highlight3: 'Real-Time Collaboration',
+    badge1: '6+ AET Categories',
+    badge2: '50+ Learning Goals',
+    badge3: '100% Customizable',
+    // Slide 2
+    slide2Title: 'Everything You Need to Support Your Students',
+    slide2Description: 'Comprehensive tools designed for modern education professionals.',
+    feature1Title: 'Student Profiles',
+    feature1Description: 'Complete profiles with assessment data, progress tracking, and learning history.',
+    feature2Title: 'AI-Powered Plans',
+    feature2Description: 'Automatically generate IEPs aligned to evidence-based practices and standards.',
+    feature3Title: 'Collaboration',
+    feature3Description: 'Share insights with parents, specialists, and team members in real-time.',
+    feature4Title: 'Progress Tracking',
+    feature4Description: 'Monitor student growth with intuitive dashboards and data visualizations.',
+    // Slide 3
+    slide3Title: 'How It Works',
+    slide3Description: 'Three simple steps to transform your IEP planning process.',
+    step1Title: 'Create Student Profiles',
+    step1Description: 'Add student information, assessments, and learning history to build comprehensive profiles.',
+    step2Title: 'Generate AI Plans',
+    step2Description: 'Let our AI create personalized IEPs based on student data and evidence-based frameworks.',
+    step3Title: 'Track & Collaborate',
+    step3Description: 'Monitor progress, share updates with your team, and adjust plans as students grow.',
+    // Login form
+    signInSubtitle: 'Sign in to your TrainTracks account',
+    emailLabel: 'Email Address',
+    emailPlaceholder: 'you@example.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter your password',
+    signInButton: 'Sign In',
+    noAccount: "Don't have an account?",
+    createOne: 'Create one',
+  },
 };

@@ -296,7 +296,7 @@ export default function ClassesPage() {
                   marginTop: '2rem',
                   boxShadow: '0 4px 16px rgba(150, 198, 82, 0.08)'
                 }}>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 1rem 0', letterSpacing: '-0.2px' }}>Manage Your Classes</h2>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 1rem 0', letterSpacing: '-0.2px' }}>{t('classesPage.manageTitle')}</h2>
                   <p style={{ fontSize: '0.95rem', color: '#7a8492', margin: 0, lineHeight: 1.8 }}>
                     {t('classesPage.manageDesc1')} <Link href="/admin" style={{ color: '#618232', fontWeight: 600, textDecoration: 'none' }}>{t('classesPage.manageDesc2')}</Link> {t('classesPage.manageDesc3')}
                   </p>

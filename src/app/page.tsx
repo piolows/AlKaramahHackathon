@@ -19,6 +19,7 @@ interface Particle {
 export default function HomePage() {
   const router = useRouter();
   const { locale, setLocale } = useLanguage();
+  const t = useLanguage().t;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -341,38 +342,38 @@ export default function HomePage() {
             {/* Slide 1: Personalized Learning */}
             <div className={`carousel-slide ${currentSlide === 0 ? 'active' : ''}`} style={{ gap: '1.5rem' }}>
               <h2 style={{ fontSize: '2.75rem', fontWeight: 700, color: '#2f3f58', margin: 0, lineHeight: 1.3, letterSpacing: '-0.5px' }}>
-                Personalized Learning Plans for Every Student
+                {t('homepage.slide1Title')}
               </h2>
               <p style={{ fontSize: '1rem', color: '#7a8492', fontWeight: 400, lineHeight: 1.8, margin: 0, maxWidth: '90%' }}>
-                Empower teachers with AI-generated IEPs, collaborative tools, and evidence-based strategies tailored to each student&apos;s unique needs.
+                {t('homepage.slide1Description')}
               </p>
               
               {/* Feature Highlights */}
               <div className="feature-highlights">
                 <div className="highlight-item">
                   <div style={{ width: '24px', height: '24px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>✓</div>
-                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>AI-Generated IEPs in Minutes</div>
+                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>{t('homepage.highlight1')}</div>
                 </div>
                 <div className="highlight-item">
                   <div style={{ width: '24px', height: '24px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>✓</div>
-                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>Evidence-Based Strategies</div>
+                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>{t('homepage.highlight2')}</div>
                 </div>
                 <div className="highlight-item">
                   <div style={{ width: '24px', height: '24px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>✓</div>
-                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>Real-Time Collaboration</div>
+                  <div style={{ fontSize: '0.9rem', color: '#2f3f58', fontWeight: 500, lineHeight: 1.4 }}>{t('homepage.highlight3')}</div>
                 </div>
               </div>
 
               {/* Stats Badges */}
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
                 <div style={{ background: '#f9fbf6', padding: '0.7rem 1.2rem', borderRadius: '2rem', fontSize: '0.8rem', fontWeight: 600, color: '#618232', border: '1px solid #d4e7b8' }}>
-                  6+ AET Categories
+                  {t('homepage.badge1')}
                 </div>
                 <div style={{ background: '#f9fbf6', padding: '0.7rem 1.2rem', borderRadius: '2rem', fontSize: '0.8rem', fontWeight: 600, color: '#618232', border: '1px solid #d4e7b8' }}>
-                  50+ Learning Goals
+                  {t('homepage.badge2')}
                 </div>
                 <div style={{ background: '#f9fbf6', padding: '0.7rem 1.2rem', borderRadius: '2rem', fontSize: '0.8rem', fontWeight: 600, color: '#618232', border: '1px solid #d4e7b8' }}>
-                  100% Customizable
+                  {t('homepage.badge3')}
                 </div>
               </div>
             </div>
@@ -380,27 +381,27 @@ export default function HomePage() {
             {/* Slide 2: Features */}
             <div className={`carousel-slide ${currentSlide === 1 ? 'active' : ''}`} style={{ gap: '2rem' }}>
               <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#2f3f58', margin: 0, lineHeight: 1.3, letterSpacing: '-0.4px' }}>
-                Everything You Need to Support Your Students
+                {t('homepage.slide2Title')}
               </h2>
               <p style={{ fontSize: '0.95rem', color: '#7a8492', fontWeight: 400, margin: 0 }}>
-                Comprehensive tools designed for modern education professionals.
+                {t('homepage.slide2Description')}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem', width: '100%' }}>
                 <div className="feature-block">
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Student Profiles</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>Complete profiles with assessment data, progress tracking, and learning history.</p>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.feature1Title')}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>{t('homepage.feature1Description')}</p>
                 </div>
                 <div className="feature-block">
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>AI-Powered Plans</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>Automatically generate IEPs aligned to evidence-based practices and standards.</p>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.feature2Title')}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>{t('homepage.feature2Description')}</p>
                 </div>
                 <div className="feature-block">
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Collaboration</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>Share insights with parents, specialists, and team members in real-time.</p>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.feature3Title')}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>{t('homepage.feature3Description')}</p>
                 </div>
                 <div className="feature-block">
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Progress Tracking</h3>
-                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>Monitor student growth with intuitive dashboards and data visualizations.</p>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.feature4Title')}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#7a8492', margin: 0, lineHeight: 1.6, textAlign: 'left' }}>{t('homepage.feature4Description')}</p>
                 </div>
               </div>
             </div>
@@ -408,31 +409,31 @@ export default function HomePage() {
             {/* Slide 3: How It Works */}
             <div className={`carousel-slide ${currentSlide === 2 ? 'active' : ''}`} style={{ gap: '2rem' }}>
               <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#2f3f58', margin: 0, lineHeight: 1.3, letterSpacing: '-0.4px' }}>
-                How It Works
+                {t('homepage.slide3Title')}
               </h2>
               <p style={{ fontSize: '0.95rem', color: '#7a8492', fontWeight: 400, margin: 0 }}>
-                Three simple steps to transform your IEP planning process.
+                {t('homepage.slide3Description')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '1.5rem', width: '100%' }}>
                 <div style={{ textAlign: 'left', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
                   <div style={{ width: '48px', height: '48px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, flexShrink: 0 }}>1</div>
                   <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Create Student Profiles</h3>
-                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>Add student information, assessments, and learning history to build comprehensive profiles.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.step1Title')}</h3>
+                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>{t('homepage.step1Description')}</p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'left', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
                   <div style={{ width: '48px', height: '48px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, flexShrink: 0 }}>2</div>
                   <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Generate AI Plans</h3>
-                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>Let our AI create personalized IEPs based on student data and evidence-based frameworks.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.step2Title')}</h3>
+                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>{t('homepage.step2Description')}</p>
                   </div>
                 </div>
                 <div style={{ textAlign: 'left', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
                   <div style={{ width: '48px', height: '48px', background: '#96c652', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, flexShrink: 0 }}>3</div>
                   <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>Track &amp; Collaborate</h3>
-                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>Monitor progress, share updates with your team, and adjust plans as students grow.</p>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#2f3f58', margin: '0 0 0.5rem 0' }}>{t('homepage.step3Title')}</h3>
+                    <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, lineHeight: 1.7 }}>{t('homepage.step3Description')}</p>
                   </div>
                 </div>
               </div>
@@ -566,20 +567,20 @@ export default function HomePage() {
                 <img src="LogoTT.svg" />
               </h1>
               <p style={{ fontSize: '0.9rem', color: '#7a8492', margin: 0, fontWeight: 400 }}>
-                Sign in to your TrainTracks account
+                {t('homepage.signInSubtitle')}
               </p>
             </div>
 
             <form onSubmit={handleSignIn}>
               <div className="form-group">
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#2f3f58', marginBottom: '0.5rem' }}>
-                  Email Address
+                  {t('homepage.emailLabel')}
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={t('homepage.emailPlaceholder')}
                   style={{
                     width: '100%',
                     padding: '0.9rem 1rem',
@@ -605,13 +606,13 @@ export default function HomePage() {
 
               <div className="form-group">
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#2f3f58', marginBottom: '0.5rem' }}>
-                  Password
+                  {t('homepage.passwordLabel')}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={t('homepage.passwordPlaceholder')}
                   style={{
                     width: '100%',
                     padding: '0.9rem 1rem',
@@ -636,12 +637,12 @@ export default function HomePage() {
               </div>
 
               <button type="submit" className="login-button">
-                Sign In
+                {t('homepage.signInButton')}
               </button>
             </form>
 
             <p style={{ textAlign: 'center', fontSize: '0.9rem', color: '#7a8492', marginTop: '1.5rem' }}>
-              Don&apos;t have an account?{' '}
+              {t('homepage.noAccount')}{' '}
               <button
                 type="button"
                 onClick={() => router.push('/classes')}
@@ -649,7 +650,7 @@ export default function HomePage() {
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#96c652')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = '#618232')}
               >
-                Create one
+                {t('homepage.createOne')}
               </button>
             </p>
           </div>
