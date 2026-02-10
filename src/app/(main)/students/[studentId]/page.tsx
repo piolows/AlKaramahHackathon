@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { use, useState, useEffect } from 'react';
-import { 
+import {
   ArrowLeft,
   Brain,
   Heart,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Breadcrumb, LoadingSpinner } from '@/components';
+import { useLanguage } from '@/lib/i18n';
 
 interface Student {
   id: string;
@@ -43,16 +44,16 @@ interface Student {
 }
 
 // Editable List Component
-function EditableList({ 
-  items, 
-  onUpdate, 
-  icon: Icon, 
-  iconColor, 
+function EditableList({
+  items,
+  onUpdate,
+  icon: Icon,
+  iconColor,
   bulletColor,
   title,
-  placeholder 
-}: { 
-  items: string[], 
+  placeholder
+}: {
+  items: string[],
   onUpdate: (items: string[]) => void,
   icon: React.ElementType,
   iconColor: string,
@@ -60,6 +61,7 @@ function EditableList({
   title: string,
   placeholder: string
 }) {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedItems, setEditedItems] = useState(items);
   const [newItem, setNewItem] = useState('');
@@ -96,7 +98,7 @@ function EditableList({
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <Icon className={`h-5 w-5 ${iconColor} mr-2`} />
+          <Icon className={`h-5 w-5 ${iconColor} me-2`} />
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         {!isEditing ? (
@@ -104,24 +106,24 @@ function EditableList({
             onClick={() => setIsEditing(true)}
             className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
-            <Pencil className="h-4 w-4 mr-1" />
-            Edit
+            <Pencil className="h-4 w-4 me-1" />
+            {t('common.edit')}
           </button>
         ) : (
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 rtl:space-x-reverse">
             <button
               onClick={handleSave}
               className="inline-flex items-center text-sm text-green-600 hover:text-green-700"
             >
-              <Save className="h-4 w-4 mr-1" />
-              Save
+              <Save className="h-4 w-4 me-1" />
+              {t('common.save')}
             </button>
             <button
               onClick={handleCancel}
               className="inline-flex items-center text-sm text-gray-600 hover:text-gray-700"
             >
-              <X className="h-4 w-4 mr-1" />
-              Cancel
+              <X className="h-4 w-4 me-1" />
+              {t('common.cancel')}
             </button>
           </div>
         )}
@@ -131,18 +133,18 @@ function EditableList({
         <ul className="space-y-2">
           {items.map((item, index) => (
             <li key={index} className="flex items-start text-gray-700">
-              <div className={`w-2 h-2 ${bulletColor} rounded-full mr-3 mt-2 flex-shrink-0`}></div>
+              <div className={`w-2 h-2 ${bulletColor} rounded-full me-3 mt-2 flex-shrink-0`}></div>
               {item}
             </li>
           ))}
           {items.length === 0 && (
-            <p className="text-gray-400 italic">No items added yet</p>
+            <p className="text-gray-400 italic">{t('studentProfile.noItemsYet')}</p>
           )}
         </ul>
       ) : (
         <div className="space-y-3">
           {editedItems.map((item, index) => (
-            <div key={index} className="flex items-center space-x-2">
+            <div key={index} className="flex items-center space-x-2 rtl:space-x-reverse">
               <div className={`w-2 h-2 ${bulletColor} rounded-full flex-shrink-0`}></div>
               <input
                 type="text"
@@ -158,7 +160,7 @@ function EditableList({
               </button>
             </div>
           ))}
-          <div className="flex items-center space-x-2 pt-2">
+          <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
             <Plus className={`h-4 w-4 ${iconColor}`} />
             <input
               type="text"
@@ -173,7 +175,7 @@ function EditableList({
               disabled={!newItem.trim()}
               className="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add
+              {t('common.add')}
             </button>
           </div>
         </div>
@@ -183,18 +185,18 @@ function EditableList({
 }
 
 // Editable Tags Component (for diagnoses)
-function EditableTags({ 
-  items, 
-  onUpdate, 
-  icon: Icon, 
-  iconColor, 
+function EditableTags({
+  items,
+  onUpdate,
+  icon: Icon,
+  iconColor,
   tagBg,
   tagText,
   title,
   placeholder,
   bare = false
-}: { 
-  items: string[], 
+}: {
+  items: string[],
   onUpdate: (items: string[]) => void,
   icon: React.ElementType,
   iconColor: string,
@@ -204,6 +206,7 @@ function EditableTags({
   placeholder: string,
   bare?: boolean
 }) {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedItems, setEditedItems] = useState(items);
   const [newItem, setNewItem] = useState('');
@@ -234,7 +237,7 @@ function EditableTags({
     <>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <Icon className={`h-5 w-5 ${iconColor} mr-2`} />
+          <Icon className={`h-5 w-5 ${iconColor} me-2`} />
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         {!isEditing ? (
@@ -242,24 +245,24 @@ function EditableTags({
             onClick={() => setIsEditing(true)}
             className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
-            <Pencil className="h-4 w-4 mr-1" />
-            Edit
+            <Pencil className="h-4 w-4 me-1" />
+            {t('common.edit')}
           </button>
         ) : (
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 rtl:space-x-reverse">
             <button
               onClick={handleSave}
               className="inline-flex items-center text-sm text-green-600 hover:text-green-700"
             >
-              <Save className="h-4 w-4 mr-1" />
-              Save
+              <Save className="h-4 w-4 me-1" />
+              {t('common.save')}
             </button>
             <button
               onClick={handleCancel}
               className="inline-flex items-center text-sm text-gray-600 hover:text-gray-700"
             >
-              <X className="h-4 w-4 mr-1" />
-              Cancel
+              <X className="h-4 w-4 me-1" />
+              {t('common.cancel')}
             </button>
           </div>
         )}
@@ -268,7 +271,7 @@ function EditableTags({
       {!isEditing ? (
         <div className="flex flex-wrap gap-2">
           {items.map((item, index) => (
-            <span 
+            <span
               key={index}
               className={`px-3 py-1.5 ${tagBg} ${tagText} rounded-lg text-sm font-medium`}
             >
@@ -276,28 +279,28 @@ function EditableTags({
             </span>
           ))}
           {items.length === 0 && (
-            <p className="text-gray-400 italic">No items added yet</p>
+            <p className="text-gray-400 italic">{t('studentProfile.noItemsYet')}</p>
           )}
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {editedItems.map((item, index) => (
-              <span 
+              <span
                 key={index}
                 className={`inline-flex items-center px-3 py-1.5 ${tagBg} ${tagText} rounded-lg text-sm font-medium`}
               >
                 {item}
                 <button
                   onClick={() => removeItem(index)}
-                  className="ml-2 hover:text-red-600"
+                  className="ms-2 hover:text-red-600"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             ))}
           </div>
-          <div className="flex items-center space-x-2 pt-2">
+          <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
             <input
               type="text"
               value={newItem}
@@ -311,7 +314,7 @@ function EditableTags({
               disabled={!newItem.trim()}
               className="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add
+              {t('common.add')}
             </button>
           </div>
         </div>
@@ -329,16 +332,16 @@ function EditableTags({
 }
 
 // Editable Text Component (for single text fields)
-function EditableText({ 
-  value, 
-  onUpdate, 
-  icon: Icon, 
-  iconColor, 
+function EditableText({
+  value,
+  onUpdate,
+  icon: Icon,
+  iconColor,
   title,
   placeholder,
   multiline = false
-}: { 
-  value: string, 
+}: {
+  value: string,
   onUpdate: (value: string) => void,
   icon: React.ElementType,
   iconColor: string,
@@ -346,6 +349,7 @@ function EditableText({
   placeholder: string,
   multiline?: boolean
 }) {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState(value);
 
@@ -363,7 +367,7 @@ function EditableText({
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <Icon className={`h-5 w-5 ${iconColor} mr-2`} />
+          <Icon className={`h-5 w-5 ${iconColor} me-2`} />
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         {!isEditing ? (
@@ -371,24 +375,24 @@ function EditableText({
             onClick={() => setIsEditing(true)}
             className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
           >
-            <Pencil className="h-4 w-4 mr-1" />
-            Edit
+            <Pencil className="h-4 w-4 me-1" />
+            {t('common.edit')}
           </button>
         ) : (
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 rtl:space-x-reverse">
             <button
               onClick={handleSave}
               className="inline-flex items-center text-sm text-green-600 hover:text-green-700"
             >
-              <Save className="h-4 w-4 mr-1" />
-              Save
+              <Save className="h-4 w-4 me-1" />
+              {t('common.save')}
             </button>
             <button
               onClick={handleCancel}
               className="inline-flex items-center text-sm text-gray-600 hover:text-gray-700"
             >
-              <X className="h-4 w-4 mr-1" />
-              Cancel
+              <X className="h-4 w-4 me-1" />
+              {t('common.cancel')}
             </button>
           </div>
         )}
@@ -396,7 +400,7 @@ function EditableText({
 
       {!isEditing ? (
         <p className="text-gray-700 whitespace-pre-wrap">
-          {value || <span className="text-gray-400 italic">No information added yet</span>}
+          {value || <span className="text-gray-400 italic">{t('studentProfile.noInfoYet')}</span>}
         </p>
       ) : (
         multiline ? (
@@ -422,10 +426,11 @@ function EditableText({
 
 export default function StudentProfilePage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
+  const { t, locale } = useLanguage();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // State for all editable fields
   const [diagnoses, setDiagnoses] = useState<string[]>([]);
   const [strengths, setStrengths] = useState<string[]>([]);
@@ -545,9 +550,9 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('studentProfile.studentNotFound')}</h1>
           <Link href="/classes" className="text-primary-600 hover:underline">
-            Return to Classes
+            {t('studentProfile.returnToClasses')}
           </Link>
         </div>
       </div>
@@ -560,18 +565,18 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <Breadcrumb items={[
-          { label: 'Classes', href: '/classes' },
+          { label: t('classesPage.title'), href: '/classes' },
           { label: student.className, href: `/classes/${student.classId}` },
           { label: `${student.firstName} ${student.lastName}` }
         ]} />
 
         {/* Back Button */}
-        <Link 
+        <Link
           href={`/classes/${student.classId}`}
           className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to {student.className}
+          <ArrowLeft className="h-4 w-4 me-2" />
+          {t('studentProfile.backTo')} {student.className}
         </Link>
 
         {/* Student Header Card */}
@@ -581,16 +586,16 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center text-white text-2xl font-semibold">
                 {student.firstName[0]}{student.lastName[0]}
               </div>
-              <div className="ml-6">
+              <div className="ms-6">
                 <h1 className="text-3xl font-bold text-gray-900">
                   {student.firstName} {student.lastName}
                 </h1>
                 <p className="text-gray-600 mt-1">{student.className}</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Born: {new Date(student.dateOfBirth).toLocaleDateString('en-GB', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
+                  {t('studentProfile.born')}: {new Date(student.dateOfBirth).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
                   })}
                 </p>
               </div>
@@ -599,8 +604,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               href={`/students/${student.id}/aet`}
               className="inline-flex items-center px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
             >
-              <Target className="h-5 w-5 mr-2" />
-              View AET Progress
+              <Target className="h-5 w-5 me-2" />
+              {t('studentProfile.viewAETProgress')}
             </Link>
           </div>
         </div>
@@ -619,8 +624,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
                   iconColor="text-purple-600"
                   tagBg="bg-purple-50"
                   tagText="text-purple-700"
-                  title="Diagnoses"
-                  placeholder="Add a diagnosis..."
+                  title={t('studentProfile.diagnoses')}
+                  placeholder={t('studentProfile.addDiagnosis')}
                   bare
                 />
               </div>
@@ -633,14 +638,14 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
                       className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-ai-50 text-ai-600 hover:bg-ai-100 transition-colors font-medium text-sm"
                     >
                       <Wand2 className="h-4 w-4" />
-                      Consult AI about Diagnoses
+                      {t('studentProfile.consultAI')}
                     </button>
                   ) : (
                     <div className="p-6 bg-gray-50/50">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Wand2 className="h-5 w-5 text-ai-500" />
-                          <h3 className="text-sm font-semibold text-gray-900">Ask about Diagnoses</h3>
+                          <h3 className="text-sm font-semibold text-gray-900">{t('studentProfile.askAboutDiagnoses')}</h3>
                         </div>
                         <button
                           onClick={() => { setShowConsult(false); setConsultAnswer(''); setConsultError(null); setConsultQuestion(''); }}
@@ -656,7 +661,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
                           value={consultQuestion}
                           onChange={(e) => setConsultQuestion(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && !consultLoading && handleConsult()}
-                          placeholder="e.g. How do these diagnoses affect eating habits?"
+                          placeholder={t('studentProfile.consultPlaceholder')}
                           className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-ai-500 focus:border-transparent bg-white"
                           disabled={consultLoading}
                         />
@@ -699,8 +704,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={Sparkles}
               iconColor="text-primary-500"
               bulletColor="bg-primary-400"
-              title="Strengths"
-              placeholder="Add a strength..."
+              title={t('studentProfile.strengths')}
+              placeholder={t('studentProfile.addStrength')}
             />
 
             {/* Challenges */}
@@ -710,8 +715,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={AlertCircle}
               iconColor="text-red-500"
               bulletColor="bg-red-400"
-              title="Challenges"
-              placeholder="Add a challenge..."
+              title={t('studentProfile.challenges')}
+              placeholder={t('studentProfile.addChallenge')}
             />
 
             {/* Interests */}
@@ -721,8 +726,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={Heart}
               iconColor="text-pink-500"
               bulletColor="bg-pink-400"
-              title="Interests"
-              placeholder="Add an interest..."
+              title={t('studentProfile.interests')}
+              placeholder={t('studentProfile.addInterest')}
             />
 
             {/* Triggers */}
@@ -732,8 +737,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={AlertCircle}
               iconColor="text-orange-500"
               bulletColor="bg-orange-400"
-              title="Triggers"
-              placeholder="Add a trigger..."
+              title={t('studentProfile.triggers')}
+              placeholder={t('studentProfile.addTrigger')}
             />
 
             {/* Calming Strategies */}
@@ -743,8 +748,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={Heart}
               iconColor="text-teal-500"
               bulletColor="bg-teal-400"
-              title="Calming Strategies"
-              placeholder="Add a calming strategy..."
+              title={t('studentProfile.calmingStrategies')}
+              placeholder={t('studentProfile.addCalmingStrategy')}
             />
           </div>
 
@@ -756,8 +761,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               onUpdate={(value) => { setCommunicationStyle(value); setTimeout(saveChanges, 100); }}
               icon={MessageSquare}
               iconColor="text-blue-500"
-              title="Communication Style"
-              placeholder="Describe how this student communicates..."
+              title={t('studentProfile.communicationStyle')}
+              placeholder={t('studentProfile.communicationStylePlaceholder')}
               multiline={true}
             />
 
@@ -768,8 +773,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={Eye}
               iconColor="text-green-500"
               bulletColor="bg-green-400"
-              title="Sensory Needs"
-              placeholder="Add a sensory need..."
+              title={t('studentProfile.sensoryNeeds')}
+              placeholder={t('studentProfile.addSensoryNeed')}
             />
 
             {/* Support Strategies */}
@@ -779,8 +784,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               icon={Target}
               iconColor="text-primary-500"
               bulletColor="bg-primary-400"
-              title="Support Strategies"
-              placeholder="Add a support strategy..."
+              title={t('studentProfile.supportStrategies')}
+              placeholder={t('studentProfile.addSupportStrategy')}
             />
 
             {/* Teacher Notes */}
@@ -789,22 +794,22 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
               onUpdate={(value) => { setTeacherNotes(value); setTimeout(saveChanges, 100); }}
               icon={Pencil}
               iconColor="text-primary-500"
-              title="Teacher Notes"
-              placeholder="Add any additional notes about this student..."
+              title={t('studentProfile.teacherNotes')}
+              placeholder={t('studentProfile.addTeacherNote')}
               multiline={true}
             />
 
             {/* AET Link Card */}
             <div className="bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl p-6 text-white">
-              <h2 className="text-lg font-semibold mb-4">AET Progress</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('studentProfile.aetProgress')}</h2>
               <p className="text-primary-100 text-sm mb-4">
-                Track this student's progress across all AET framework areas with AI-generated personalized teaching plans.
+                {t('studentProfile.aetProgressDesc')}
               </p>
               <Link
                 href={`/students/${student.id}/aet`}
                 className="block w-full text-center py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
               >
-                View Full Progress →
+                {t('studentProfile.viewFullProgress')}
               </Link>
             </div>
           </div>
@@ -813,8 +818,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
         {/* Saving Indicator */}
         {saving && (
           <div className="fixed bottom-4 right-4 bg-primary-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-            Saving...
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent me-2"></div>
+            {t('common.saving')}
           </div>
         )}
       </div>

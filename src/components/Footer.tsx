@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { Train, Heart } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n';
 
 export default function Footer() {
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -11,10 +15,11 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Brand */}
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(135deg, var(--primary-300) 0%, var(--primary-400) 100%)' }}>
+            <img src="/DarkTTstk.svg" width="120" />
+            {/* <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(135deg, var(--primary-300) 0%, var(--primary-400) 100%)' }}>
               <Train className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">TrainTrack</span>
+            <span className="text-xl font-bold text-white">TrainTrack</span> */}
           </div>
 
           {/* Tagline */}

@@ -1,18 +1,13 @@
-- Components / Layout
-- Fix AI output not completing (check) (done maybe)
-- Fix regenerate to use last provided optional instructions
-- Dark mode (no)
 - Color scheme, theme, style / UI UX flow / Unfuglination
 	- Create CSS variables for main colors of the site and text
 	- Proficiency stuff
-- Profile page; customized roles/permissions
+- Profile page; customized roles/permissions (maybe not)
 - Print stuff (refine)
 - Phone view (seems to be fine)
 - Further test prompting
 	- Maybe change LLM
 	- Add more API keys
 - Admin page: extra tab for adding diagnoses options (mm idk)
-- Goals accomplished per day display (idk bout dat)
 - Refine prompt
 	- Take into account grade and British curriculum
 	- Never incorporate electronic devices for students
@@ -21,5 +16,15 @@
 - Refine individual plan prompts; consider classroom dynamics blablabla
 - Visual feedback in lesson actions (refine/delete)
 - Redo landing page
-
-- RAG / Flashcards (some stuff done)
+- Export to Word
+- Add Arabic (everywhere and also to pictograms)
+- Shorten lesson (done i guess)
+- Add different age group instructions (done i guess)
+- Link / suggest resources (done i guess)
+- Improve individual goals
+	- Also link / suggest resources, maybe give relevant ASARAAC cards
+- Search online for custom pictures
+- TrainTracks
+- Token boards
+- AAC for specific tasks
+- Expand database with more dummy data
