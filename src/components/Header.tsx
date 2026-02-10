@@ -17,7 +17,11 @@ const navLinks: NavLink[] = [
   { href: '/admin', labelKey: 'nav.admin', icon: <Settings className="h-4 w-4" /> },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  showNavLinks?: boolean;
+}
+
+export default function Header({ showNavLinks = true }: HeaderProps) {
   const pathname = usePathname();
   const { locale, setLocale, t } = useLanguage();
   const [showLangDropdown, setShowLangDropdown] = useState(false);
@@ -46,35 +50,39 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo & Brand */}
-          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-              <Train className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">TrainTrack</span>
+    <header className="bg-white border-b border-gray-100 sticky top-0 z-50" dir="ltr">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center">
+          {/* Logo & Brand - matching login page style */}
+          <Link href="/classes" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="py-4">
+              <img  src="./LogoTT.svg" width="150"/>
+          </div>
           </Link>
-
           {/* Navigation + Language Switcher */}
           <div className="flex items-center gap-1">
+            {showNavLinks && (
             <nav className="flex items-center gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors duration-200 ${
                     isActive(link.href)
-                      ? 'text-primary-700 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {link.icon}
-                  {t(link.labelKey)}
-                </Link>
+                      ? 'text-primary-800 hover:text-[var(--primary-blue-500)]'
+                      : 'text-gray-600 hover:text-[var(--primary-blue-500)]'
+                  }`}>
+                {link.icon}
+                {t(link.labelKey)}
+                {/* Animated bottom border */}
+                <span 
+                  className="absolute bottom-0 left-0 right-0 h-1 transition-all duration-300 ease-in-out"
+                  style={{ backgroundColor: 'var(--primary-800)', transform: isActive(link.href) ? 'scaleX(1)' : 'scaleX(0)', opacity: isActive(link.href) ? 1 : 0, transformOrigin: 'center bottom'}}
+                />
+              </Link>
               ))}
             </nav>
+            )}
 
             {/* Language Switcher */}
             <div className="relative ms-2" ref={dropdownRef}>
@@ -124,5 +132,6 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }
+

@@ -72,11 +72,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} ${notoSansArabic.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
       >
         <LanguageProvider>
-          <Header />
+          {/* <Header /> */}
           <main className="flex-1">
             {children}
           </main>
-          <Footer />
+          {/* <Footer /> */}
         </LanguageProvider>
       </body>
     </html>

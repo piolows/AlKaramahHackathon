@@ -18,7 +18,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
 
   return (
     <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6 rtl:space-x-reverse">
-      <Link href="/" className="hover:text-primary-600 transition-colors">
+      <Link href="/classes" className="hover:text-primary-600 transition-colors">
         {t('breadcrumb.home')}
       </Link>
       {items.map((item, index) => (
