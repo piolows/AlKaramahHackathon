@@ -96,6 +96,49 @@ interface SavedLesson {
   createdAt: string;
 }
 
+// === Visual Schedule Types ===
+interface VisualStep {
+  label: string;
+  searchWord: string;
+  alternativeWords?: string[];
+  pictogramId: number | null;
+  pictogramUrl: string | null;
+}
+
+interface VisualGroup {
+  id: string;
+  type: 'lesson_schedule' | 'student_tasks' | 'custom';
+  studentId?: string;
+  label: string;
+  customPrompt?: string;
+  steps: VisualStep[];
+}
+
+// Parse stored visualSchedule JSON — handles both old (flat steps) and new (groups) format
+function parseVisualGroups(raw: string | null): VisualGroup[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return [];
+    // Old format: first element has searchWord but no type
+    if (parsed[0].searchWord !== undefined && parsed[0].type === undefined) {
+      return [{
+        id: 'legacy-schedule',
+        type: 'lesson_schedule' as const,
+        label: 'Lesson Schedule',
+        steps: parsed,
+      }];
+    }
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function generateGroupId(): string {
+  return `vg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
   const { t, locale } = useLanguage();
@@ -150,23 +193,24 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [refineFeedback, setRefineFeedback] = useState('');
   const [refiningLesson, setRefiningLesson] = useState(false);
   
-  // State for visual schedule
-  const [visualSteps, setVisualSteps] = useState<{
-    label: string;
-    searchWord: string;
-    alternativeWords?: string[];
-    pictogramId: number | null;
-    pictogramUrl: string | null;
-  }[] | null>(null);
-  const [generatingVisuals, setGeneratingVisuals] = useState(false);
+  // State for visual schedules (multiple groups)
+  const [visualGroups, setVisualGroups] = useState<VisualGroup[]>([]);
+  const [generatingVisualId, setGeneratingVisualId] = useState<string | null>(null); // group id being generated
   const [visualError, setVisualError] = useState<string | null>(null);
+  const [showVisualsDropdown, setShowVisualsDropdown] = useState(false);
+  const [showCustomPromptInput, setShowCustomPromptInput] = useState(false);
+  const [customVisualPrompt, setCustomVisualPrompt] = useState('');
+  const visualsDropdownRef = useRef<HTMLDivElement>(null);
+  // Card editing state (scoped by groupId)
   const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [addCardGroupId, setAddCardGroupId] = useState<string | null>(null);
   const [cardSearchQuery, setCardSearchQuery] = useState('');
   const [cardSearchResults, setCardSearchResults] = useState<{ id: number; url: string; keywords: string[] }[]>([]);
   const [cardSearching, setCardSearching] = useState(false);
   const [newCardLabel, setNewCardLabel] = useState('');
-  const [regeneratingCardIndex, setRegeneratingCardIndex] = useState<number | null>(null);
-  const [editingCardIndex, setEditingCardIndex] = useState<number | null>(null);
+  const [regeneratingCard, setRegeneratingCard] = useState<{ groupId: string; index: number } | null>(null);
+  const [editingCard, setEditingCard] = useState<{ groupId: string; index: number } | null>(null);
+  const [dragGroupId, setDragGroupId] = useState<string | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef<Record<number, number>>({});
@@ -760,7 +804,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     if (!currentLessonId) {
       // Unsaved lesson — just clear it
       setGeneratedLesson(null);
-      setVisualSteps(null);
+      setVisualGroups([]);
       return;
     }
 
@@ -778,7 +822,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           setGeneratedLesson(null);
           setCurrentLessonId(null);
           setShowLessonHistory(false);
-          setVisualSteps(null);
+          setVisualGroups([]);
         }
       }
     } catch (error) {
@@ -786,82 +830,159 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  // Save visual schedule to database
-  const saveVisualSchedule = useCallback(async (steps: typeof visualSteps) => {
-    if (!currentLessonId || !steps) return;
+  // Save all visual groups to database
+  const saveVisualGroups = useCallback(async (groups: VisualGroup[]) => {
+    if (!currentLessonId) return;
     try {
+      const serialized = JSON.stringify(groups);
       await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visualSchedule: JSON.stringify(steps) }),
+        body: JSON.stringify({ visualSchedule: serialized }),
       });
-      // Update local savedLessons cache
       setSavedLessons(prev => prev.map(l =>
-        l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(steps) } : l
+        l.id === currentLessonId ? { ...l, visualSchedule: serialized } : l
       ));
     } catch (error) {
-      console.error('Error saving visual schedule:', error);
+      console.error('Error saving visual groups:', error);
     }
   }, [currentLessonId, classId]);
 
-  // Generate visual schedule from lesson
-  const generateVisualSchedule = async () => {
+  // Generate a visual group (lesson schedule, student tasks, or custom)
+  const generateVisualGroup = async (
+    type: 'lesson_schedule' | 'student_tasks' | 'custom',
+    studentId?: string,
+    customPrompt?: string,
+  ) => {
     if (!generatedLesson) return;
 
-    setGeneratingVisuals(true);
+    // Determine the label and existing group id
+    let label: string;
+    let existingGroupIdx: number;
+    if (type === 'lesson_schedule') {
+      label = 'Lesson Schedule';
+      existingGroupIdx = visualGroups.findIndex(g => g.type === 'lesson_schedule');
+    } else if (type === 'student_tasks' && studentId) {
+      const student = students.find(s => s.id === studentId);
+      label = student ? `${student.firstName}'s Tasks` : 'Student Tasks';
+      existingGroupIdx = visualGroups.findIndex(g => g.type === 'student_tasks' && g.studentId === studentId);
+    } else if (type === 'custom' && customPrompt) {
+      const shortLabel = customPrompt.length > 40 ? customPrompt.slice(0, 40) + '…' : customPrompt;
+      label = `Custom: ${shortLabel}`;
+      existingGroupIdx = -1; // custom always creates new
+    } else {
+      return;
+    }
+
+    const groupId = existingGroupIdx >= 0 ? visualGroups[existingGroupIdx].id : generateGroupId();
+    setGeneratingVisualId(groupId);
     setVisualError(null);
+    setShowVisualsDropdown(false);
+    setShowCustomPromptInput(false);
+
     try {
+      // Build request body based on type
+      const requestBody: Record<string, unknown> = {
+        lessonContent: generatedLesson,
+        type,
+      };
+
+      // Use the lesson schedule step count as the target for student/custom visuals
+      const lessonScheduleGroup = visualGroups.find(g => g.type === 'lesson_schedule');
+      if (type !== 'lesson_schedule' && lessonScheduleGroup) {
+        requestBody.stepCount = lessonScheduleGroup.steps.length;
+      }
+
+      if (type === 'student_tasks' && studentId) {
+        const student = students.find(s => s.id === studentId);
+        if (student) {
+          requestBody.studentProfile = {
+            firstName: student.firstName,
+            lastName: student.lastName,
+            diagnoses: student.diagnoses,
+            strengths: student.strengths,
+            challenges: student.challenges,
+            interests: student.interests,
+            sensoryNeeds: student.sensoryNeeds,
+            communicationStyle: student.communicationStyle,
+            supportStrategies: student.supportStrategies,
+          };
+        }
+      }
+
+      if (type === 'custom' && customPrompt) {
+        requestBody.customPrompt = customPrompt;
+      }
+
       const response = await fetch('/api/generate-visuals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonContent: generatedLesson }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to generate visuals');
 
-      setVisualSteps(data.steps);
-      // Save to DB
-      if (currentLessonId) {
-        await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visualSchedule: JSON.stringify(data.steps) }),
-        });
-        setSavedLessons(prev => prev.map(l =>
-          l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(data.steps) } : l
-        ));
-      }
+      const newGroup: VisualGroup = {
+        id: groupId,
+        type,
+        label,
+        studentId: type === 'student_tasks' ? studentId : undefined,
+        customPrompt: type === 'custom' ? customPrompt : undefined,
+        steps: data.steps,
+      };
+
+      const updatedGroups = existingGroupIdx >= 0
+        ? visualGroups.map((g, i) => i === existingGroupIdx ? newGroup : g)
+        : [...visualGroups, newGroup];
+
+      setVisualGroups(updatedGroups);
+      saveVisualGroups(updatedGroups);
     } catch (error) {
       console.error('Error generating visuals:', error);
       setVisualError(error instanceof Error ? error.message : 'Failed to generate visual schedule');
     } finally {
-      setGeneratingVisuals(false);
+      setGeneratingVisualId(null);
     }
   };
 
-  // Remove a step from the visual schedule
-  const removeVisualStep = (index: number) => {
-    setVisualSteps(prev => {
-      if (!prev) return null;
-      const updated = prev.filter((_, i) => i !== index);
-      saveVisualSchedule(updated);
+  // Remove an entire visual group
+  const removeVisualGroup = (groupId: string) => {
+    if (!confirm(t('classDetail.removeScheduleConfirm'))) return;
+    const updated = visualGroups.filter(g => g.id !== groupId);
+    setVisualGroups(updated);
+    saveVisualGroups(updated);
+  };
+
+  // Update a group's steps and save
+  const updateGroupSteps = useCallback((groupId: string, newSteps: VisualStep[]) => {
+    setVisualGroups(prev => {
+      const updated = prev.map(g => g.id === groupId ? { ...g, steps: newSteps } : g);
+      saveVisualGroups(updated);
       return updated;
     });
+  }, [saveVisualGroups]);
+
+  // Remove a step from a specific group
+  const removeVisualStep = (groupId: string, index: number) => {
+    const group = visualGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const newSteps = group.steps.filter((_, i) => i !== index);
+    updateGroupSteps(groupId, newSteps);
   };
 
   // Regenerate a single card — cycle to next ARASAAC result
-  const regenerateCard = async (index: number) => {
-    if (!visualSteps) return;
-    const step = visualSteps[index];
-    setRegeneratingCardIndex(index);
+  const regenerateCard = async (groupId: string, index: number) => {
+    const group = visualGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const step = group.steps[index];
+    setRegeneratingCard({ groupId, index });
     try {
       const res = await fetch(`/api/pictogram-search?q=${encodeURIComponent(step.searchWord)}&limit=10`);
       const data = await res.json();
       const results = data.results || [];
       
       if (results.length <= 1) {
-        // Try alternative words
         for (const alt of (step.alternativeWords || [])) {
           const altRes = await fetch(`/api/pictogram-search?q=${encodeURIComponent(alt)}&limit=10`);
           const altData = await altRes.json();
@@ -871,26 +992,25 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         }
       }
 
-      // Find current index and pick next one
       const currentIdx = results.findIndex((r: { id: number }) => r.id === step.pictogramId);
       const nextIdx = (currentIdx + 1) % results.length;
       const next = results[nextIdx];
 
       if (next && next.id !== step.pictogramId) {
-        const updated = [...visualSteps];
-        updated[index] = { ...step, pictogramId: next.id, pictogramUrl: next.url };
-        setVisualSteps(updated);
-        saveVisualSchedule(updated);
+        const newSteps = [...group.steps];
+        newSteps[index] = { ...step, pictogramId: next.id, pictogramUrl: next.url };
+        updateGroupSteps(groupId, newSteps);
       }
     } catch (error) {
       console.error('Error regenerating card:', error);
     } finally {
-      setRegeneratingCardIndex(null);
+      setRegeneratingCard(null);
     }
   };
 
-  // Drag-and-drop handlers
-  const handleDragStart = (index: number) => {
+  // Drag-and-drop handlers (scoped to a group)
+  const handleDragStart = (groupId: string, index: number) => {
+    setDragGroupId(groupId);
     setDraggedIndex(index);
   };
 
@@ -911,15 +1031,17 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  const handleDrop = (dropIndex: number) => {
-    if (draggedIndex === null || draggedIndex === dropIndex || !visualSteps) return;
-    const updated = [...visualSteps];
-    const [dragged] = updated.splice(draggedIndex, 1);
-    updated.splice(dropIndex, 0, dragged);
-    setVisualSteps(updated);
-    saveVisualSchedule(updated);
+  const handleDrop = (groupId: string, dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex || dragGroupId !== groupId) return;
+    const group = visualGroups.find(g => g.id === groupId);
+    if (!group) return;
+    const updatedSteps = [...group.steps];
+    const [dragged] = updatedSteps.splice(draggedIndex, 1);
+    updatedSteps.splice(dropIndex, 0, dragged);
+    updateGroupSteps(groupId, updatedSteps);
     setDraggedIndex(null);
     setDragOverIndex(null);
+    setDragGroupId(null);
     dragCounter.current = {};
   };
 
@@ -947,36 +1069,40 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  // Add a card manually from picker
+  // Add a card manually from picker (to a specific group)
   const addManualCard = (pictogram: { id: number; url: string }, label: string) => {
-    const newStep = {
+    if (!addCardGroupId) return;
+    const group = visualGroups.find(g => g.id === addCardGroupId);
+    if (!group) return;
+    const newStep: VisualStep = {
       label: label || 'New Step',
       searchWord: label.toLowerCase(),
       pictogramId: pictogram.id,
       pictogramUrl: pictogram.url,
     };
-    const updated = [...(visualSteps || []), newStep];
-    setVisualSteps(updated);
-    saveVisualSchedule(updated);
+    updateGroupSteps(addCardGroupId, [...group.steps, newStep]);
     setShowAddCardModal(false);
     setCardSearchQuery('');
     setCardSearchResults([]);
     setNewCardLabel('');
+    setAddCardGroupId(null);
   };
 
-  // Add a custom card to the visual schedule
+  // Add a custom card to a specific group
   const addCustomCardToSchedule = (card: { id: string; name: string; imageData: string }) => {
-    const newStep = {
+    if (!addCardGroupId) return;
+    const group = visualGroups.find(g => g.id === addCardGroupId);
+    if (!group) return;
+    const newStep: VisualStep = {
       label: card.name,
       searchWord: card.name.toLowerCase(),
       pictogramId: null,
-      pictogramUrl: card.imageData, // data URI
+      pictogramUrl: card.imageData,
     };
-    const updated = [...(visualSteps || []), newStep];
-    setVisualSteps(updated);
-    saveVisualSchedule(updated);
+    updateGroupSteps(addCardGroupId, [...group.steps, newStep]);
     setShowAddCardModal(false);
     setNewCardLabel('');
+    setAddCardGroupId(null);
   };
 
   // Fetch custom cards
@@ -1057,6 +1183,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       if (visualExportDropdownRef.current && !visualExportDropdownRef.current.contains(event.target as Node)) {
         setShowVisualExportDropdown(false);
       }
+      if (visualsDropdownRef.current && !visualsDropdownRef.current.contains(event.target as Node)) {
+        setShowVisualsDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -1071,7 +1200,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       lessonTopic: currentLesson?.lessonTopic || lessonForm.lessonTopic,
       learningObjective: currentLesson?.learningObjective || lessonForm.learningObjective,
       content: generatedLesson || '',
-      visualSteps: visualSteps,
+      visualSteps: visualGroups.length > 0
+        ? visualGroups.flatMap(g => g.steps).map(s => ({ label: s.label, imageUrl: s.pictogramUrl || '' }))
+        : null,
       className: classData?.name,
       createdAt: currentLesson?.createdAt,
     };
@@ -1389,7 +1520,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 onClick={() => {
                   setGeneratedLesson(lastLesson.content);
                   setCurrentLessonId(lastLesson.id);
-                  setVisualSteps(lastLesson.visualSchedule ? JSON.parse(lastLesson.visualSchedule) : null);
+                  setVisualGroups(parseVisualGroups(lastLesson.visualSchedule));
                 }}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
@@ -1522,7 +1653,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     setGeneratedLesson(null);
                     setCurrentLessonId(null);
                     setShowLessonHistory(false);
-                    setVisualSteps(null);
+                    setVisualGroups([]);
                   }}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   title={t('classDetail.hideLesson')}
@@ -1550,7 +1681,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       onClick={() => {
                         setGeneratedLesson(lesson.content);
                         setCurrentLessonId(lesson.id);
-                        setVisualSteps(lesson.visualSchedule ? JSON.parse(lesson.visualSchedule) : null);
+                        setVisualGroups(parseVisualGroups(lesson.visualSchedule));
                       }}
                     >
                       <div className="flex-1 min-w-0">
@@ -1766,23 +1897,105 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {/* Lesson Action Buttons */}
             {!editingLesson && !showRefineInput && (
               <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200 no-print">
-                <button
-                  onClick={generateVisualSchedule}
-                  disabled={generatingVisuals}
-                  className="inline-flex items-center px-3 py-2 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors disabled:opacity-50"
-                >
-                  {generatingVisuals ? (
-                    <>
-                      <Loader2 className="h-4 w-4 me-1 animate-spin" />
-                      {t('common.generating')}...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="h-4 w-4 me-1" />
-                      {t('classDetail.generateVisualSchedule')}
-                    </>
+                {/* Generate Visuals Dropdown */}
+                <div className="relative" ref={visualsDropdownRef}>
+                  <button
+                    onClick={() => { setShowVisualsDropdown(!showVisualsDropdown); setShowCustomPromptInput(false); }}
+                    disabled={!!generatingVisualId}
+                    className="inline-flex items-center px-3 py-2 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors disabled:opacity-50"
+                  >
+                    {generatingVisualId ? (
+                      <>
+                        <Loader2 className="h-4 w-4 me-1 animate-spin" />
+                        {t('common.generating')}...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="h-4 w-4 me-1" />
+                        {t('classDetail.generateVisuals')}
+                        <ChevronDown className={`h-3.5 w-3.5 ms-1 transition-transform ${showVisualsDropdown ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
+                  </button>
+                  {showVisualsDropdown && (
+                    <div className="absolute start-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
+                      {/* Generate Lesson Schedule */}
+                      <button
+                        onClick={() => generateVisualGroup('lesson_schedule')}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
+                      >
+                        <BookOpen className="h-4 w-4 shrink-0" />
+                        <span>{t('classDetail.generateLessonSchedule')}</span>
+                        {visualGroups.some(g => g.type === 'lesson_schedule') && (
+                          <span className="ms-auto text-[10px] text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded">✓</span>
+                        )}
+                      </button>
+                      {/* Divider */}
+                      <div className="border-t border-gray-100 my-1" />
+                      {/* Generate Student Tasks */}
+                      {students.map(student => (
+                        <button
+                          key={student.id}
+                          onClick={() => generateVisualGroup('student_tasks', student.id)}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
+                        >
+                          <Target className="h-4 w-4 shrink-0" />
+                          <span>{student.firstName}{t('classDetail.generateStudentTasks')}</span>
+                          {visualGroups.some(g => g.type === 'student_tasks' && g.studentId === student.id) && (
+                            <span className="ms-auto text-[10px] text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded">✓</span>
+                          )}
+                        </button>
+                      ))}
+                      {/* Divider */}
+                      <div className="border-t border-gray-100 my-1" />
+                      {/* Generate Custom */}
+                      <button
+                        onClick={() => { setShowCustomPromptInput(true); setShowVisualsDropdown(false); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
+                      >
+                        <Wand2 className="h-4 w-4 shrink-0" />
+                        <span>{t('classDetail.generateCustomVisual')}</span>
+                      </button>
+                    </div>
                   )}
-                </button>
+                </div>
+                {/* Custom Visual Prompt Input (inline) */}
+                {showCustomPromptInput && (
+                  <div className="w-full mt-2 p-3 bg-violet-50 border border-violet-200 rounded-xl">
+                    <label className="block text-sm font-medium text-violet-800 mb-1.5">
+                      <Wand2 className="h-3.5 w-3.5 inline me-1" />
+                      {t('classDetail.customVisualPromptTitle')}
+                    </label>
+                    <textarea
+                      value={customVisualPrompt}
+                      onChange={(e) => setCustomVisualPrompt(e.target.value)}
+                      placeholder={t('classDetail.customVisualPromptPlaceholder')}
+                      className="w-full h-20 p-2.5 border border-violet-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none bg-white"
+                      disabled={!!generatingVisualId}
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={() => { setShowCustomPromptInput(false); setCustomVisualPrompt(''); }}
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (customVisualPrompt.trim()) {
+                            generateVisualGroup('custom', undefined, customVisualPrompt.trim());
+                            setCustomVisualPrompt('');
+                          }
+                        }}
+                        disabled={!customVisualPrompt.trim() || !!generatingVisualId}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {t('classDetail.customVisualGenerate')}
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={() => setShowRefineInput(true)}
                   className="inline-flex items-center px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
@@ -1824,10 +2037,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               </div>
             )}
 
-            {/* Visual Schedule Display */}
-            {visualSteps && visualSteps.length > 0 && (
-              <div className="mt-6 pt-6 border-t-2 border-violet-200" id="visual-schedule">
-                <div className="flex items-center justify-between mb-4">
+            {/* Visual Schedule Display — renders each visual group independently */}
+            {visualGroups.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-violet-200 space-y-6" id="visual-schedule">
+                {/* Overall header */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-violet-100 rounded-lg">
                       <ImageIcon className="h-5 w-5 text-violet-600" />
@@ -1838,31 +2052,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     </div>
                   </div>
                   <div className="flex items-center gap-2 no-print">
-                    <button
-                      onClick={() => {
-                        setNewCardLabel('');
-                        setCardSearchQuery('');
-                        setCardSearchResults([]);
-                        setCardModalTab('search');
-                        setUploadCardName('');
-                        setUploadCardImage(null);
-                        fetchCustomCards();
-                        setShowAddCardModal(true);
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors"
-                    >
-                      <Plus className="h-3 w-3" />
-                      {t('classDetail.addCard')}
-                    </button>
-                    <button
-                      onClick={generateVisualSchedule}
-                      disabled={generatingVisuals}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors disabled:opacity-50"
-                    >
-                      <RefreshCw className={`h-3 w-3 ${generatingVisuals ? 'animate-spin' : ''}`} />
-                      {t('classDetail.regenerateAll')}
-                    </button>
-                    {/* Visual Schedule Export Dropdown */}
+                    {/* Global export dropdown */}
                     <div className="relative" ref={visualExportDropdownRef}>
                       <button
                         onClick={() => setShowVisualExportDropdown(!showVisualExportDropdown)}
@@ -1911,7 +2101,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       )}
                     </div>
                     <button
-                      onClick={() => setVisualSteps(null)}
+                      onClick={() => setVisualGroups([])}
                       className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                       title={t('classDetail.hideVisualSchedule')}
                     >
@@ -1920,131 +2110,188 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   </div>
                 </div>
 
-                {/* The Visual Strip */}
-                <div className="bg-white border-2 border-violet-100 rounded-xl p-6 print-visual-schedule">
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {visualSteps.map((step, index) => (
-                      <div key={`${step.label}-${index}`} className="flex items-center gap-1">
-                        <div
-                          draggable
-                          onDragStart={() => handleDragStart(index)}
-                          onDragEnter={() => handleDragEnter(index)}
-                          onDragLeave={() => handleDragLeave(index)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => handleDrop(index)}
-                          onDragEnd={handleDragEnd}
-                          className={`group relative flex flex-col items-center w-28 p-3 bg-white border-2 rounded-xl transition-all cursor-grab active:cursor-grabbing ${
-                            draggedIndex === index
-                              ? 'opacity-40 border-violet-400 scale-95'
-                              : dragOverIndex === index
-                              ? 'border-violet-500 bg-violet-50 scale-105 shadow-lg'
-                              : 'border-gray-200 hover:border-violet-300'
-                          }`}
+                {/* Individual visual groups */}
+                {visualGroups.map((group) => (
+                  <div key={group.id} className="print-visual-schedule">
+                    {/* Group header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-gray-700">{group.label}</h4>
+                      <div className="flex items-center gap-1.5 no-print">
+                        <button
+                          onClick={() => {
+                            setAddCardGroupId(group.id);
+                            setNewCardLabel('');
+                            setCardSearchQuery('');
+                            setCardSearchResults([]);
+                            setCardModalTab('search');
+                            setUploadCardName('');
+                            setUploadCardImage(null);
+                            fetchCustomCards();
+                            setShowAddCardModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-violet-700 bg-violet-50 rounded-lg text-xs hover:bg-violet-100 transition-colors"
                         >
-                          {/* Drag handle */}
-                          <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <GripVertical className="h-3 w-3 text-gray-300" />
-                          </div>
-
-                          {/* Action buttons on hover */}
-                          <div className="absolute -top-2 -right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); regenerateCard(index); }}
-                              disabled={regeneratingCardIndex === index}
-                              className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
-                              title={t('classDetail.tryDifferentPicture')}
-                            >
-                              {regeneratingCardIndex === index ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <RefreshCw className="h-3 w-3" />
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removeVisualStep(index); }}
-                              className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                              title={t('classDetail.removeCard')}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                          
-                          {/* Pictogram */}
-                          <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
-                            {step.pictogramUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img 
-                                src={step.pictogramUrl}
-                                alt={step.label}
-                                className="w-full h-full object-contain"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                <ImageIcon className="h-8 w-8" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Label — click to edit */}
-                          {editingCardIndex === index ? (
-                            <input
-                              autoFocus
-                              type="text"
-                              defaultValue={step.label}
-                              className="text-xs font-bold text-gray-800 text-center leading-tight w-full bg-violet-50 border border-violet-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-violet-400"
-                              onBlur={(e) => {
-                                const newLabel = e.target.value.trim();
-                                setEditingCardIndex(null);
-                                if (newLabel && newLabel !== step.label && visualSteps) {
-                                  const updated = [...visualSteps];
-                                  updated[index] = { ...updated[index], label: newLabel };
-                                  setVisualSteps(updated);
-                                  saveVisualSchedule(updated);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                                if (e.key === 'Escape') setEditingCardIndex(null);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              onDragStart={(e) => e.preventDefault()}
-                            />
-                          ) : (
-                            <span
-                              className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
-                              onClick={(e) => { e.stopPropagation(); setEditingCardIndex(index); }}
-                              title={t('classDetail.clickToRename')}
-                            >
-                              {step.label}
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Arrow between steps */}
-                        {index < visualSteps.length - 1 && (
-                          <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block rtl:rotate-180" />
-                        )}
+                          <Plus className="h-3 w-3" />
+                          {t('classDetail.addCard')}
+                        </button>
+                        <button
+                          onClick={() => generateVisualGroup(group.type, group.studentId, group.customPrompt)}
+                          disabled={generatingVisualId === group.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-violet-700 bg-violet-50 rounded-lg text-xs hover:bg-violet-100 transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw className={`h-3 w-3 ${generatingVisualId === group.id ? 'animate-spin' : ''}`} />
+                          {t('classDetail.regenerateAll')}
+                        </button>
+                        <button
+                          onClick={() => removeVisualGroup(group.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-red-600 bg-red-50 rounded-lg text-xs hover:bg-red-100 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                          {t('classDetail.removeSchedule')}
+                        </button>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Loading skeleton while this group is generating */}
+                    {generatingVisualId === group.id ? (
+                      <div className="bg-white border-2 border-violet-100 rounded-xl p-6">
+                        <div className="flex flex-wrap justify-center gap-3">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <div key={n} className="flex flex-col items-center w-28 p-3 border-2 border-gray-100 rounded-xl animate-pulse">
+                              <div className="w-20 h-20 mb-2 bg-gray-200 rounded-lg" />
+                              <div className="w-16 h-3 bg-gray-200 rounded" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* The Visual Strip for this group */
+                      <div className="bg-white border-2 border-violet-100 rounded-xl p-6">
+                        <div className="flex flex-wrap justify-center gap-3">
+                          {group.steps.map((step, index) => (
+                            <div key={`${group.id}-${step.label}-${index}`} className="flex items-center gap-1">
+                              <div
+                                draggable
+                                onDragStart={() => handleDragStart(group.id, index)}
+                                onDragEnter={() => handleDragEnter(index)}
+                                onDragLeave={() => handleDragLeave(index)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => handleDrop(group.id, index)}
+                                onDragEnd={handleDragEnd}
+                                className={`group/card relative flex flex-col items-center w-28 p-3 bg-white border-2 rounded-xl transition-all cursor-grab active:cursor-grabbing ${
+                                  dragGroupId === group.id && draggedIndex === index
+                                    ? 'opacity-40 border-violet-400 scale-95'
+                                    : dragGroupId === group.id && dragOverIndex === index
+                                    ? 'border-violet-500 bg-violet-50 scale-105 shadow-lg'
+                                    : 'border-gray-200 hover:border-violet-300'
+                                }`}
+                              >
+                                {/* Drag handle */}
+                                <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                  <GripVertical className="h-3 w-3 text-gray-300" />
+                                </div>
+
+                                {/* Action buttons on hover */}
+                                <div className="absolute -top-2 -right-2 flex gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); regenerateCard(group.id, index); }}
+                                    disabled={regeneratingCard?.groupId === group.id && regeneratingCard?.index === index}
+                                    className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
+                                    title={t('classDetail.tryDifferentPicture')}
+                                  >
+                                    {regeneratingCard?.groupId === group.id && regeneratingCard?.index === index ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); removeVisualStep(group.id, index); }}
+                                    className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                                    title={t('classDetail.removeCard')}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                
+                                {/* Pictogram */}
+                                <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
+                                  {step.pictogramUrl ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img 
+                                      src={step.pictogramUrl}
+                                      alt={step.label}
+                                      className="w-full h-full object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                      <ImageIcon className="h-8 w-8" />
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Label — click to edit */}
+                                {editingCard?.groupId === group.id && editingCard?.index === index ? (
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    defaultValue={step.label}
+                                    className="text-xs font-bold text-gray-800 text-center leading-tight w-full bg-violet-50 border border-violet-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-violet-400"
+                                    onBlur={(e) => {
+                                      const newLabel = e.target.value.trim();
+                                      setEditingCard(null);
+                                      if (newLabel && newLabel !== step.label) {
+                                        const newSteps = [...group.steps];
+                                        newSteps[index] = { ...newSteps[index], label: newLabel };
+                                        updateGroupSteps(group.id, newSteps);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                      if (e.key === 'Escape') setEditingCard(null);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onDragStart={(e) => e.preventDefault()}
+                                  />
+                                ) : (
+                                  <span
+                                    className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
+                                    onClick={(e) => { e.stopPropagation(); setEditingCard({ groupId: group.id, index }); }}
+                                    title={t('classDetail.clickToRename')}
+                                  >
+                                    {step.label}
+                                  </span>
+                                )}
+                              </div>
+                              
+                              {/* Arrow between steps */}
+                              {index < group.steps.length - 1 && (
+                                <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block rtl:rotate-180" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* ARASAAC Attribution */}
-                  <div className="mt-4 pt-3 border-t border-gray-100 text-center">
-                    <p className="text-[10px] text-gray-400">
-                      {t('classDetail.arasaacAttribution')}{' '}
-                      <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
-                        ARASAAC
-                      </a>
-                      {' '}&mdash; Gobierno de Arag&oacute;n. {t('classDetail.licensedUnder')}{' '}
-                      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
-                        CC BY-NC-SA 4.0
-                      </a>
-                    </p>
-                  </div>
+                ))}
+
+                {/* ARASAAC Attribution */}
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-400">
+                    {t('classDetail.arasaacAttribution')}{' '}
+                    <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                      ARASAAC
+                    </a>
+                    {' '}&mdash; Gobierno de Arag&oacute;n. {t('classDetail.licensedUnder')}{' '}
+                    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                      CC BY-NC-SA 4.0
+                    </a>
+                  </p>
                 </div>
               </div>
             )}

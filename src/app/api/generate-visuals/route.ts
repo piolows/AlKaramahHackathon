@@ -15,6 +15,20 @@ interface VisualStep {
 
 interface GenerateVisualsRequest {
   lessonContent: string;
+  type?: 'lesson_schedule' | 'student_tasks' | 'custom';
+  studentProfile?: {
+    firstName: string;
+    lastName: string;
+    diagnoses: string[];
+    strengths: string[];
+    challenges: string[];
+    interests: string[];
+    sensoryNeeds: string[];
+    communicationStyle: string;
+    supportStrategies: string[];
+  };
+  customPrompt?: string;
+  stepCount?: number; // target number of steps (taken from lesson schedule length)
 }
 
 // Search ARASAAC for a pictogram matching a keyword
@@ -50,9 +64,9 @@ async function searchPictogram(keyword: string): Promise<{ id: number; url: stri
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateVisualsRequest = await request.json();
-    const { lessonContent } = body;
+    const { lessonContent, type = 'lesson_schedule', studentProfile, customPrompt, stepCount } = body;
 
-    if (!lessonContent) {
+    if (!lessonContent && type !== 'custom') {
       return NextResponse.json(
         { error: 'Lesson content is required.' },
         { status: 400 }
@@ -67,8 +81,91 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Use AI to extract key visual steps from the lesson
-    const prompt = `You are helping create a PECS-style visual schedule for autistic children. Given a lesson plan, extract the KEY ACTIVITY STEPS in chronological order.
+    const targetSteps = stepCount ? `exactly ${stepCount}` : '6-12';
+
+    // Build prompt based on type
+    let prompt: string;
+
+    if (type === 'student_tasks' && studentProfile) {
+      prompt = `You are helping create a PECS-style individual task schedule for an autistic student. Given a lesson plan and the student's profile, extract the KEY TASKS/ACTIVITIES that THIS SPECIFIC STUDENT will do during the lesson.
+
+## STUDENT PROFILE
+
+Name: ${studentProfile.firstName} ${studentProfile.lastName}
+Diagnoses: ${studentProfile.diagnoses.join(', ') || 'Not specified'}
+Strengths: ${studentProfile.strengths.join(', ') || 'Not specified'}
+Challenges: ${studentProfile.challenges.join(', ') || 'Not specified'}
+Interests: ${studentProfile.interests.join(', ') || 'Not specified'}
+Sensory Needs: ${studentProfile.sensoryNeeds.join(', ') || 'Not specified'}
+Communication Style: ${studentProfile.communicationStyle || 'Not specified'}
+Support Strategies: ${studentProfile.supportStrategies.join(', ') || 'Not specified'}
+
+## LESSON PLAN
+
+${lessonContent}
+
+---
+
+## YOUR TASK
+
+Create ${targetSteps} task cards for ${studentProfile.firstName}'s individual visual schedule during this lesson. Focus on:
+- What ${studentProfile.firstName} specifically needs to do at each stage
+- Include any differentiated tasks mentioned for this student in the lesson
+- Add support steps (e.g., "use communication board", "sensory break") that match their profile
+- Include transitions and rewards/motivators based on their interests
+- Keep it personalized — not generic lesson steps, but what THIS child does
+
+Return ONLY valid JSON, nothing else. No markdown code fences. Use this exact format:
+
+[
+  {
+    "label": "Sit Down",
+    "searchWord": "sit",
+    "alternativeWords": ["chair", "seat"]
+  }
+]
+
+Rules:
+- ${targetSteps} steps
+- Labels should be 1-3 words, child-friendly
+- searchWord should be ONE simple, common English word (noun or verb)
+- alternativeWords: 2-3 fallback single words
+- Think about what pictograms would actually exist
+- Include personal supports and transitions
+- Keep it in lesson order`;
+    } else if (type === 'custom' && customPrompt) {
+      prompt = `You are helping create a PECS-style visual schedule/task board for autistic children. A teacher has described what they want. Create pictogram cards based on their description.
+
+## TEACHER'S REQUEST
+
+${customPrompt}
+
+---
+
+## YOUR TASK
+
+Create ${targetSteps} visual cards based on the teacher's request above. Think about what would work well as individual pictogram cards on a visual strip.
+
+Return ONLY valid JSON, nothing else. No markdown code fences. Use this exact format:
+
+[
+  {
+    "label": "Sit Down",
+    "searchWord": "sit",
+    "alternativeWords": ["chair", "seat"]
+  }
+]
+
+Rules:
+- ${targetSteps} steps
+- Labels should be 1-3 words, child-friendly
+- searchWord should be ONE simple, common English word (noun or verb)
+- alternativeWords: 2-3 fallback single words
+- Think about what pictograms would actually exist: common objects, actions, body parts, emotions, school items
+- Match the teacher's request as closely as possible`;
+    } else {
+      // Default: lesson_schedule (original behavior)
+      prompt = `You are helping create a PECS-style visual schedule for autistic children. Given a lesson plan, extract the KEY ACTIVITY STEPS in chronological order.
 
 ## LESSON PLAN
 
@@ -106,6 +203,7 @@ Rules:
 - Think about what pictograms would actually exist: common objects, actions, body parts, emotions, school items
 - Include transitions: "sit down", "tidy up", "well done" etc.
 - Keep it in lesson order`;
+    }
 
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
