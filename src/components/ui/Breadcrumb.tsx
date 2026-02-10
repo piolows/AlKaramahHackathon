@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 
 interface BreadcrumbItem {
@@ -14,25 +13,44 @@ interface BreadcrumbProps {
 }
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isRTL = locale === 'ar';
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6 rtl:space-x-reverse">
-      <Link href="/classes" className="hover:text-primary-600 transition-colors">
+    <nav style={{
+      padding: '0.75rem 2rem',
+      background: 'white',
+      fontSize: '0.85rem',
+      fontWeight: 500,
+      borderBottom: '1px solid #f0f0f0',
+      direction: isRTL ? 'rtl' : 'ltr'
+    }}>
+      <Link 
+        href="/classes" 
+        style={{ color: '#2f3f58', textDecoration: 'none', fontWeight: 500 }}
+      >
         {t('breadcrumb.home')}
       </Link>
-      {items.map((item, index) => (
-        <span key={index} className="flex items-center space-x-2 rtl:space-x-reverse">
-          <ChevronRight className="h-4 w-4 rtl:rotate-180" />
-          {item.href ? (
-            <Link href={item.href} className="hover:text-primary-600 transition-colors">
-              {item.label}
-            </Link>
-          ) : (
-            <span className="text-gray-900">{item.label}</span>
-          )}
-        </span>
-      ))}
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        return (
+          <span key={index}>
+            <span style={{ color: '#d1d5db', margin: '0 0.5rem' }}>
+              {isRTL ? '<' : '>'}
+            </span>
+            {item.href && !isLast ? (
+              <Link 
+                href={item.href} 
+                style={{ color: '#2f3f58', textDecoration: 'none', fontWeight: 500 }}
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <span style={{ color: '#618232', fontWeight: 600 }}>{item.label}</span>
+            )}
+          </span>
+        );
+      })}
     </nav>
   );
 }

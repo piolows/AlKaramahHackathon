@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LayoutGrid, List } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
+import { Breadcrumb } from '@/components';
 
 interface ClassData {
   id: string;
@@ -65,20 +66,11 @@ export default function ClassesPage() {
 
   return (
     <>
-      <div style={{ fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#f5f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ background: '#f5f2ee', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Breadcrumb */}
-        <div style={{
-          padding: '0.75rem 2rem',
-          background: 'white',
-          fontSize: '0.85rem',
-          color: '#9ca3af',
-          fontWeight: 500,
-          borderBottom: '1px solid #f0f0f0'
-        }}>
-          <Link href="/classes" style={{ color: '#2f3f58', textDecoration: 'none', fontWeight: 500 }}>{t('breadcrumb.home')}</Link>
-          <span style={{ color: '#d1d5db', margin: '0 0.5rem' }}>&gt;</span>
-          <span style={{ color: '#618232', fontWeight: 600 }}>{t('classesPage.title')}</span>
-        </div>
+        <Breadcrumb items={[
+          { label: t('classesPage.title') }
+        ]} />
 
         {/* Header */}
         <div style={{

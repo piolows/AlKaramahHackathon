@@ -388,7 +388,7 @@ ${phase === 'EYFS' ? `
 **DIFFERENTIATION - ENTRY POINTS:**
 ${students.map(s => {
     const goal = s.currentGoals?.[0];
-    const goalNote = goal ? ` (AET goal: ${goal.subcategoryName} — explain how this activity links to this goal)` : '';
+    const goalNote = goal ? ` **(AET goal: ${goal.subcategoryName} — explain how this activity links to this goal)**` : '';
     return `- **${s.firstName}:** [Specific adaptation for their level + supports needed]${goalNote}`;
   }).join('\n')}
 

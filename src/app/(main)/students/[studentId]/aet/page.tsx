@@ -149,23 +149,6 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     }
   }
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!student) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
-          <Link href="/classes" className="text-primary-600 hover:underline">
-            Return to Classes
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   const toggleArea = (areaId: string) => {
     setExpandedAreas(prev => 
       prev.includes(areaId) 
@@ -222,6 +205,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     categoryName: string,
     subcategory: Subcategory
   ) => {
+    if (!student) return;
+    
     setGeneratingPlan(subcategoryId);
     setGenerationError(null);
     
@@ -425,26 +410,39 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
 
   return (
     <div>
-      {/* Page Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <Breadcrumb items={[
-          { label: 'Classes', href: '/classes' },
-          { label: student.className, href: `/classes/${student.classId}` },
-          { label: student.firstName, href: `/students/${student.id}` },
-          { label: 'AET Progress' }
-        ]} />
+      {/* Breadcrumb - always visible */}
+      <Breadcrumb items={[
+        { label: 'Classes', href: '/classes' },
+        { label: loading ? '...' : (student?.className || 'Class'), href: student ? `/classes/${student.classId}` : '/classes' },
+        { label: loading ? '...' : (student?.firstName || 'Student'), href: student ? `/students/${student.id}` : '/classes' },
+        { label: 'AET Progress' }
+      ]} />
 
-        {/* Back Button */}
-        <Link 
-          href={`/students/${student.id}`}
-          className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Profile
-        </Link>
+      {loading ? (
+        <LoadingSpinner />
+      ) : !student ? (
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
+            <Link href="/classes" className="text-primary-600 hover:underline">
+              Return to Classes
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Page Content */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Back Button */}
+            <Link
+              href={`/students/${student.id}`}
+              className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Profile
+            </Link>
 
-        {/* Page Header with Current Goal */}
+            {/* Page Header with Current Goal */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
           <div className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -948,6 +946,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

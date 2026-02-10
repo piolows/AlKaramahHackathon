@@ -37,13 +37,9 @@ import {
   Plus,
   Search,
   GripVertical,
-  Upload,
-  FileDown,
-  FileType,
-  Presentation
+  Upload
 } from 'lucide-react';
 import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
-import { exportToWord, exportToPowerPoint, exportToPDF, generateFilename } from '@/lib/export-utils';
 import { Breadcrumb, LoadingSpinner } from '@/components';
 import { useLanguage } from '@/lib/i18n';
 
@@ -105,52 +101,9 @@ interface SavedLesson {
   createdAt: string;
 }
 
-// === Visual Schedule Types ===
-interface VisualStep {
-  label: string;
-  searchWord: string;
-  alternativeWords?: string[];
-  pictogramId: number | null;
-  pictogramUrl: string | null;
-}
-
-interface VisualGroup {
-  id: string;
-  type: 'lesson_schedule' | 'student_tasks' | 'custom';
-  studentId?: string;
-  label: string;
-  customPrompt?: string;
-  steps: VisualStep[];
-}
-
-// Parse stored visualSchedule JSON — handles both old (flat steps) and new (groups) format
-function parseVisualGroups(raw: string | null): VisualGroup[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return [];
-    // Old format: first element has searchWord but no type
-    if (parsed[0].searchWord !== undefined && parsed[0].type === undefined) {
-      return [{
-        id: 'legacy-schedule',
-        type: 'lesson_schedule' as const,
-        label: 'Lesson Schedule',
-        steps: parsed,
-      }];
-    }
-    return parsed;
-  } catch {
-    return [];
-  }
-}
-
-function generateGroupId(): string {
-  return `vg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
-  const { t, locale } = useLanguage();
+  const { t } = useLanguage();
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +122,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   
   // ARASAAC goal visuals state
   const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
-  const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
+  const [generatingVisuals, setGeneratingVisuals] = useState<any>(null);
   const [visualsError, setVisualsError] = useState<string | null>(null);
   
   // State for generating all plans
@@ -207,24 +160,23 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [refineFeedback, setRefineFeedback] = useState('');
   const [refiningLesson, setRefiningLesson] = useState(false);
   
-  // State for visual schedules (multiple groups)
-  const [visualGroups, setVisualGroups] = useState<VisualGroup[]>([]);
-  const [generatingVisualId, setGeneratingVisualId] = useState<string | null>(null); // group id being generated
+  // State for visual schedule
+  const [visualSteps, setVisualSteps] = useState<{
+    label: string;
+    searchWord: string;
+    alternativeWords?: string[];
+    pictogramId: number | null;
+    pictogramUrl: string | null;
+  }[] | null>(null);
+  // const [generatingVisuals, setGeneratingVisuals] = useState(false);
   const [visualError, setVisualError] = useState<string | null>(null);
-  const [showVisualsDropdown, setShowVisualsDropdown] = useState(false);
-  const [showCustomPromptInput, setShowCustomPromptInput] = useState(false);
-  const [customVisualPrompt, setCustomVisualPrompt] = useState('');
-  const visualsDropdownRef = useRef<HTMLDivElement>(null);
-  // Card editing state (scoped by groupId)
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [addCardGroupId, setAddCardGroupId] = useState<string | null>(null);
   const [cardSearchQuery, setCardSearchQuery] = useState('');
   const [cardSearchResults, setCardSearchResults] = useState<{ id: number; url: string; keywords: string[] }[]>([]);
   const [cardSearching, setCardSearching] = useState(false);
   const [newCardLabel, setNewCardLabel] = useState('');
-  const [regeneratingCard, setRegeneratingCard] = useState<{ groupId: string; index: number } | null>(null);
-  const [editingCard, setEditingCard] = useState<{ groupId: string; index: number } | null>(null);
-  const [dragGroupId, setDragGroupId] = useState<string | null>(null);
+  const [regeneratingCardIndex, setRegeneratingCardIndex] = useState<number | null>(null);
+  const [editingCardIndex, setEditingCardIndex] = useState<number | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef<Record<number, number>>({});
@@ -235,22 +187,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   const [uploadCardImage, setUploadCardImage] = useState<string | null>(null);
   const [uploadingCard, setUploadingCard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Export dropdown state
-  const [showExportDropdown, setShowExportDropdown] = useState(false);
-  const [showVisualExportDropdown, setShowVisualExportDropdown] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const exportDropdownRef = useRef<HTMLDivElement>(null);
-  const visualExportDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [classRes, studentsRes, lessonsRes, progressRes] = await Promise.all([
+        const [classRes, studentsRes, lessonsRes] = await Promise.all([
           fetch(`/api/classes/${classId}`),
           fetch(`/api/students?classId=${classId}`),
-          fetch(`/api/classes/${classId}/lessons`),
-          fetch(`/api/classes/${classId}/progress`)
+          fetch(`/api/classes/${classId}/lessons`)
         ]);
         
         if (classRes.ok) {
@@ -260,11 +204,18 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         if (studentsRes.ok) {
           const studentsData = await studentsRes.json();
           setStudents(studentsData);
-        }
-
-        if (progressRes.ok) {
-          const progressData = await progressRes.json();
-          setStudentProgress(progressData);
+          
+          // Fetch progress for all students
+          const progressPromises = studentsData.map((s: Student) => 
+            fetch(`/api/students/${s.id}/progress`).then(r => r.ok ? r.json() : {})
+          );
+          const progressResults = await Promise.all(progressPromises);
+          
+          const progressMap: Record<string, Record<string, SubcategoryProgress>> = {};
+          studentsData.forEach((s: Student, i: number) => {
+            progressMap[s.id] = progressResults[i];
+          });
+          setStudentProgress(progressMap);
         }
         
         // Load saved lessons (don't auto-expand — user can open via dropdown)
@@ -860,11 +811,11 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     if (!currentLessonId) {
       // Unsaved lesson — just clear it
       setGeneratedLesson(null);
-      setVisualGroups([]);
+      setVisualSteps(null);
       return;
     }
 
-    if (!confirm(t('classDetail.deleteLessonConfirm'))) return;
+    if (!confirm('Delete this lesson plan?')) return;
 
     try {
       const res = await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, { method: 'DELETE' });
@@ -878,7 +829,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
           setGeneratedLesson(null);
           setCurrentLessonId(null);
           setShowLessonHistory(false);
-          setVisualGroups([]);
+          setVisualSteps(null);
         }
       }
     } catch (error) {
@@ -886,159 +837,82 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  // Save all visual groups to database
-  const saveVisualGroups = useCallback(async (groups: VisualGroup[]) => {
-    if (!currentLessonId) return;
+  // Save visual schedule to database
+  const saveVisualSchedule = useCallback(async (steps: typeof visualSteps) => {
+    if (!currentLessonId || !steps) return;
     try {
-      const serialized = JSON.stringify(groups);
       await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visualSchedule: serialized }),
+        body: JSON.stringify({ visualSchedule: JSON.stringify(steps) }),
       });
+      // Update local savedLessons cache
       setSavedLessons(prev => prev.map(l =>
-        l.id === currentLessonId ? { ...l, visualSchedule: serialized } : l
+        l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(steps) } : l
       ));
     } catch (error) {
-      console.error('Error saving visual groups:', error);
+      console.error('Error saving visual schedule:', error);
     }
   }, [currentLessonId, classId]);
 
-  // Generate a visual group (lesson schedule, student tasks, or custom)
-  const generateVisualGroup = async (
-    type: 'lesson_schedule' | 'student_tasks' | 'custom',
-    studentId?: string,
-    customPrompt?: string,
-  ) => {
+  // Generate visual schedule from lesson
+  const generateVisualSchedule = async () => {
     if (!generatedLesson) return;
 
-    // Determine the label and existing group id
-    let label: string;
-    let existingGroupIdx: number;
-    if (type === 'lesson_schedule') {
-      label = 'Lesson Schedule';
-      existingGroupIdx = visualGroups.findIndex(g => g.type === 'lesson_schedule');
-    } else if (type === 'student_tasks' && studentId) {
-      const student = students.find(s => s.id === studentId);
-      label = student ? `${student.firstName}'s Tasks` : 'Student Tasks';
-      existingGroupIdx = visualGroups.findIndex(g => g.type === 'student_tasks' && g.studentId === studentId);
-    } else if (type === 'custom' && customPrompt) {
-      const shortLabel = customPrompt.length > 40 ? customPrompt.slice(0, 40) + '…' : customPrompt;
-      label = `Custom: ${shortLabel}`;
-      existingGroupIdx = -1; // custom always creates new
-    } else {
-      return;
-    }
-
-    const groupId = existingGroupIdx >= 0 ? visualGroups[existingGroupIdx].id : generateGroupId();
-    setGeneratingVisualId(groupId);
+    setGeneratingVisuals(true);
     setVisualError(null);
-    setShowVisualsDropdown(false);
-    setShowCustomPromptInput(false);
-
     try {
-      // Build request body based on type
-      const requestBody: Record<string, unknown> = {
-        lessonContent: generatedLesson,
-        type,
-      };
-
-      // Use the lesson schedule step count as the target for student/custom visuals
-      const lessonScheduleGroup = visualGroups.find(g => g.type === 'lesson_schedule');
-      if (type !== 'lesson_schedule' && lessonScheduleGroup) {
-        requestBody.stepCount = lessonScheduleGroup.steps.length;
-      }
-
-      if (type === 'student_tasks' && studentId) {
-        const student = students.find(s => s.id === studentId);
-        if (student) {
-          requestBody.studentProfile = {
-            firstName: student.firstName,
-            lastName: student.lastName,
-            diagnoses: student.diagnoses,
-            strengths: student.strengths,
-            challenges: student.challenges,
-            interests: student.interests,
-            sensoryNeeds: student.sensoryNeeds,
-            communicationStyle: student.communicationStyle,
-            supportStrategies: student.supportStrategies,
-          };
-        }
-      }
-
-      if (type === 'custom' && customPrompt) {
-        requestBody.customPrompt = customPrompt;
-      }
-
       const response = await fetch('/api/generate-visuals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ lessonContent: generatedLesson }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to generate visuals');
 
-      const newGroup: VisualGroup = {
-        id: groupId,
-        type,
-        label,
-        studentId: type === 'student_tasks' ? studentId : undefined,
-        customPrompt: type === 'custom' ? customPrompt : undefined,
-        steps: data.steps,
-      };
-
-      const updatedGroups = existingGroupIdx >= 0
-        ? visualGroups.map((g, i) => i === existingGroupIdx ? newGroup : g)
-        : [...visualGroups, newGroup];
-
-      setVisualGroups(updatedGroups);
-      saveVisualGroups(updatedGroups);
+      setVisualSteps(data.steps);
+      // Save to DB
+      if (currentLessonId) {
+        await fetch(`/api/classes/${classId}/lessons/${currentLessonId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visualSchedule: JSON.stringify(data.steps) }),
+        });
+        setSavedLessons(prev => prev.map(l =>
+          l.id === currentLessonId ? { ...l, visualSchedule: JSON.stringify(data.steps) } : l
+        ));
+      }
     } catch (error) {
       console.error('Error generating visuals:', error);
       setVisualError(error instanceof Error ? error.message : 'Failed to generate visual schedule');
     } finally {
-      setGeneratingVisualId(null);
+      setGeneratingVisuals(false);
     }
   };
 
-  // Remove an entire visual group
-  const removeVisualGroup = (groupId: string) => {
-    if (!confirm(t('classDetail.removeScheduleConfirm'))) return;
-    const updated = visualGroups.filter(g => g.id !== groupId);
-    setVisualGroups(updated);
-    saveVisualGroups(updated);
-  };
-
-  // Update a group's steps and save
-  const updateGroupSteps = useCallback((groupId: string, newSteps: VisualStep[]) => {
-    setVisualGroups(prev => {
-      const updated = prev.map(g => g.id === groupId ? { ...g, steps: newSteps } : g);
-      saveVisualGroups(updated);
+  // Remove a step from the visual schedule
+  const removeVisualStep = (index: number) => {
+    setVisualSteps(prev => {
+      if (!prev) return null;
+      const updated = prev.filter((_, i) => i !== index);
+      saveVisualSchedule(updated);
       return updated;
     });
-  }, [saveVisualGroups]);
-
-  // Remove a step from a specific group
-  const removeVisualStep = (groupId: string, index: number) => {
-    const group = visualGroups.find(g => g.id === groupId);
-    if (!group) return;
-    const newSteps = group.steps.filter((_, i) => i !== index);
-    updateGroupSteps(groupId, newSteps);
   };
 
   // Regenerate a single card — cycle to next ARASAAC result
-  const regenerateCard = async (groupId: string, index: number) => {
-    const group = visualGroups.find(g => g.id === groupId);
-    if (!group) return;
-    const step = group.steps[index];
-    setRegeneratingCard({ groupId, index });
+  const regenerateCard = async (index: number) => {
+    if (!visualSteps) return;
+    const step = visualSteps[index];
+    setRegeneratingCardIndex(index);
     try {
       const res = await fetch(`/api/pictogram-search?q=${encodeURIComponent(step.searchWord)}&limit=10`);
       const data = await res.json();
       const results = data.results || [];
       
       if (results.length <= 1) {
+        // Try alternative words
         for (const alt of (step.alternativeWords || [])) {
           const altRes = await fetch(`/api/pictogram-search?q=${encodeURIComponent(alt)}&limit=10`);
           const altData = await altRes.json();
@@ -1048,25 +922,26 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         }
       }
 
+      // Find current index and pick next one
       const currentIdx = results.findIndex((r: { id: number }) => r.id === step.pictogramId);
       const nextIdx = (currentIdx + 1) % results.length;
       const next = results[nextIdx];
 
       if (next && next.id !== step.pictogramId) {
-        const newSteps = [...group.steps];
-        newSteps[index] = { ...step, pictogramId: next.id, pictogramUrl: next.url };
-        updateGroupSteps(groupId, newSteps);
+        const updated = [...visualSteps];
+        updated[index] = { ...step, pictogramId: next.id, pictogramUrl: next.url };
+        setVisualSteps(updated);
+        saveVisualSchedule(updated);
       }
     } catch (error) {
       console.error('Error regenerating card:', error);
     } finally {
-      setRegeneratingCard(null);
+      setRegeneratingCardIndex(null);
     }
   };
 
-  // Drag-and-drop handlers (scoped to a group)
-  const handleDragStart = (groupId: string, index: number) => {
-    setDragGroupId(groupId);
+  // Drag-and-drop handlers
+  const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
 
@@ -1087,17 +962,15 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  const handleDrop = (groupId: string, dropIndex: number) => {
-    if (draggedIndex === null || draggedIndex === dropIndex || dragGroupId !== groupId) return;
-    const group = visualGroups.find(g => g.id === groupId);
-    if (!group) return;
-    const updatedSteps = [...group.steps];
-    const [dragged] = updatedSteps.splice(draggedIndex, 1);
-    updatedSteps.splice(dropIndex, 0, dragged);
-    updateGroupSteps(groupId, updatedSteps);
+  const handleDrop = (dropIndex: number) => {
+    if (draggedIndex === null || draggedIndex === dropIndex || !visualSteps) return;
+    const updated = [...visualSteps];
+    const [dragged] = updated.splice(draggedIndex, 1);
+    updated.splice(dropIndex, 0, dragged);
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
     setDraggedIndex(null);
     setDragOverIndex(null);
-    setDragGroupId(null);
     dragCounter.current = {};
   };
 
@@ -1125,40 +998,36 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     }
   };
 
-  // Add a card manually from picker (to a specific group)
+  // Add a card manually from picker
   const addManualCard = (pictogram: { id: number; url: string }, label: string) => {
-    if (!addCardGroupId) return;
-    const group = visualGroups.find(g => g.id === addCardGroupId);
-    if (!group) return;
-    const newStep: VisualStep = {
+    const newStep = {
       label: label || 'New Step',
       searchWord: label.toLowerCase(),
       pictogramId: pictogram.id,
       pictogramUrl: pictogram.url,
     };
-    updateGroupSteps(addCardGroupId, [...group.steps, newStep]);
+    const updated = [...(visualSteps || []), newStep];
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
     setShowAddCardModal(false);
     setCardSearchQuery('');
     setCardSearchResults([]);
     setNewCardLabel('');
-    setAddCardGroupId(null);
   };
 
-  // Add a custom card to a specific group
+  // Add a custom card to the visual schedule
   const addCustomCardToSchedule = (card: { id: string; name: string; imageData: string }) => {
-    if (!addCardGroupId) return;
-    const group = visualGroups.find(g => g.id === addCardGroupId);
-    if (!group) return;
-    const newStep: VisualStep = {
+    const newStep = {
       label: card.name,
       searchWord: card.name.toLowerCase(),
       pictogramId: null,
-      pictogramUrl: card.imageData,
+      pictogramUrl: card.imageData, // data URI
     };
-    updateGroupSteps(addCardGroupId, [...group.steps, newStep]);
+    const updated = [...(visualSteps || []), newStep];
+    setVisualSteps(updated);
+    saveVisualSchedule(updated);
     setShowAddCardModal(false);
     setNewCardLabel('');
-    setAddCardGroupId(null);
   };
 
   // Fetch custom cards
@@ -1200,7 +1069,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
   // Delete a custom card
   const deleteCustomCard = async (cardId: string) => {
-    if (!confirm(t('classDetail.deleteCustomCardConfirm'))) return;
+    if (!confirm('Delete this custom card? It will not be removed from existing schedules.')) return;
     try {
       const res = await fetch(`/api/custom-cards/${cardId}`, { method: 'DELETE' });
       if (res.ok) {
@@ -1230,80 +1099,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     reader.readAsDataURL(file);
   };
 
-  // Close export dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
-        setShowExportDropdown(false);
-      }
-      if (visualExportDropdownRef.current && !visualExportDropdownRef.current.contains(event.target as Node)) {
-        setShowVisualExportDropdown(false);
-      }
-      if (visualsDropdownRef.current && !visualsDropdownRef.current.contains(event.target as Node)) {
-        setShowVisualsDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Get current lesson data for export
-  const getCurrentLessonData = () => {
-    const currentLesson = savedLessons.find(l => l.id === currentLessonId);
-    return {
-      title: currentLesson ? `${currentLesson.curriculumArea}: ${currentLesson.lessonTopic}` : '',
-      curriculumArea: currentLesson?.curriculumArea || lessonForm.curriculumArea,
-      lessonTopic: currentLesson?.lessonTopic || lessonForm.lessonTopic,
-      learningObjective: currentLesson?.learningObjective || lessonForm.learningObjective,
-      content: generatedLesson || '',
-      visualSteps: visualGroups.length > 0
-        ? visualGroups.flatMap(g => g.steps).map(s => ({ label: s.label, imageUrl: s.pictogramUrl || '' }))
-        : null,
-      className: classData?.name,
-      createdAt: currentLesson?.createdAt,
-    };
-  };
-
-  // Export handlers
-  const handleExportWord = async () => {
-    setExporting(true);
-    setShowExportDropdown(false);
-    setShowVisualExportDropdown(false);
-    try {
-      const data = getCurrentLessonData();
-      await exportToWord(data, generateFilename(data));
-    } catch (error) {
-      console.error('Export to Word failed:', error);
-      alert('Failed to export to Word. Please try again.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportPowerPoint = async () => {
-    setExporting(true);
-    setShowExportDropdown(false);
-    setShowVisualExportDropdown(false);
-    try {
-      const data = getCurrentLessonData();
-      await exportToPowerPoint(data, generateFilename(data));
-    } catch (error) {
-      console.error('Export to PowerPoint failed:', error);
-      alert('Failed to export to PowerPoint. Please try again.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportPDF = () => {
-    setShowExportDropdown(false);
-    setShowVisualExportDropdown(false);
-    exportToPDF();
-  };
-
-  const handlePrint = () => {
-    setShowExportDropdown(false);
-    setShowVisualExportDropdown(false);
+  // Print lesson + visual schedule
+  const printVisualSchedule = () => {
     window.print();
   };
 
@@ -1311,7 +1108,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     <div>
       {/* Breadcrumb - always visible */}
       <Breadcrumb items={[
-        { label: t('classesPage.title'), href: '/classes' },
+        { label: 'Classes', href: '/classes' },
         { label: loading ? '...' : (classData?.name || 'Class') }
       ]} />
 
@@ -1320,9 +1117,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
       ) : !classData ? (
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('classDetail.classNotFound')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Class Not Found</h1>
             <Link href="/classes" className="text-primary-600 hover:underline">
-              {t('classDetail.returnToClasses')}
+              Return to Classes
             </Link>
           </div>
         </div>
@@ -1335,20 +1132,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               href="/classes"
               className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 me-2 rtl:rotate-180" />
-              {t('classDetail.backToClasses')}
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Classes
             </Link>
 
-        {/* Class Header */}
+            {/* Class Header */}
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{classData.name}</h1>
-              <p className="text-gray-600 mb-4">{classData.description || t('common.noDescription')}</p>
-              <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <p className="text-gray-600 mb-4">{classData.description || 'No description'}</p>
+              <div className="flex items-center space-x-4">
                 <span className="inline-flex items-center text-sm text-gray-500">
-                  <Users className="h-4 w-4 me-1" />
-                  {students.length} {t('classDetail.studentsTitle')}
+                  <Users className="h-4 w-4 mr-1" />
+                  {students.length} Students
                 </span>
                 {classData.ageRange && (
                   <span className="text-xs bg-primary-50 text-primary-700 px-3 py-1 rounded-full">
@@ -1378,27 +1175,27 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
                   >
                     <BookOpen className="h-4 w-4" />
-                    <span>{t('classDetail.generateClassLesson')}</span>
+                    <span>Generate Class Lesson</span>
                   </button>
                   <button
                     onClick={() => generateAllPlans()}
                     disabled={generatingAllPlans || !hasStudentsNeedingPlans || (!generatedLesson && savedLessons.length === 0)}
-                    title={(!generatedLesson && savedLessons.length === 0) ? t('classDetail.generateLessonFirst') : undefined}
+                    title={(!generatedLesson && savedLessons.length === 0) ? 'Generate or select a class lesson first' : undefined}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-ai-500 text-white rounded-lg hover:bg-ai-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generatingAllPlans ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         {allPlansProgress ? (
-                          <span>{t('common.generating')} {allPlansProgress.current}/{allPlansProgress.total}...</span>
+                          <span>Generating {allPlansProgress.current}/{allPlansProgress.total}...</span>
                         ) : (
-                          <span>{t('common.starting')}</span>
+                          <span>Starting...</span>
                         )}
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        <span>{t('classDetail.individualGoalPlans')} {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
+                        <span>Individual Goal Plans {hasStudentsNeedingPlans ? `(${studentsNeedingPlans.length})` : ''}</span>
                       </>
                     )}
                   </button>
@@ -1420,8 +1217,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         <BookOpen className="h-6 w-6 text-emerald-600" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-gray-900">{t('classDetail.generateClassLessonTitle')}</h2>
-                        <p className="text-sm text-gray-500">{t('classDetail.lessonModalSubtitle')}</p>
+                        <h2 className="text-xl font-bold text-gray-900">Generate Class Lesson</h2>
+                        <p className="text-sm text-gray-500">Create a unified lesson with differentiated entry points for all students</p>
                       </div>
                     </div>
                     <button
@@ -1442,91 +1239,91 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('classDetail.curriculumArea')}
+                        Curriculum Area *
                       </label>
                       <select
                         value={lessonForm.curriculumArea}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, curriculumArea: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       >
-                        <option value="Mathematics">{t('classDetail.mathematics')}</option>
-                        <option value="Literacy">{t('classDetail.literacy')}</option>
-                        <option value="Communication and Language">{t('classDetail.communicationAndLanguage')}</option>
-                        <option value="Understanding the World">{t('classDetail.understandingTheWorld')}</option>
-                        <option value="Physical Development">{t('classDetail.physicalDevelopment')}</option>
-                        <option value="Personal, Social and Emotional Development">{t('classDetail.personalSocialEmotional')}</option>
-                        <option value="Expressive Arts and Design">{t('classDetail.expressiveArts')}</option>
-                        <option value="Science">{t('classDetail.science')}</option>
-                        <option value="Life Skills">{t('classDetail.lifeSkills')}</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Literacy">Literacy</option>
+                        <option value="Communication and Language">Communication and Language</option>
+                        <option value="Understanding the World">Understanding the World</option>
+                        <option value="Physical Development">Physical Development</option>
+                        <option value="Personal, Social and Emotional Development">Personal, Social and Emotional Development</option>
+                        <option value="Expressive Arts and Design">Expressive Arts and Design</option>
+                        <option value="Science">Science</option>
+                        <option value="Life Skills">Life Skills</option>
                       </select>
                     </div>
-
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('classDetail.lessonTopic')}
+                        Lesson Topic *
                       </label>
                       <input
                         type="text"
                         value={lessonForm.lessonTopic}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, lessonTopic: e.target.value }))}
-                        placeholder={t('classDetail.lessonTopicPlaceholder')}
+                        placeholder="e.g., Counting and one-to-one correspondence, Using money, Shapes"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
                     </div>
-
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('classDetail.learningObjective')}
+                        Learning Objective *
                       </label>
                       <input
                         type="text"
                         value={lessonForm.learningObjective}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, learningObjective: e.target.value }))}
-                        placeholder={t('classDetail.learningObjectivePlaceholder')}
+                        placeholder="e.g., Children will understand that numbers represent quantities"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
-                      <p className="mt-1 text-xs text-gray-500">{t('classDetail.learningObjectiveHint')}</p>
+                      <p className="mt-1 text-xs text-gray-500">This single objective will be accessed by ALL students at different levels</p>
                     </div>
-
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('classDetail.additionalNotes')}
+                        Additional Notes (Optional)
                       </label>
                       <textarea
                         value={lessonForm.additionalNotes}
                         onChange={(e) => setLessonForm(prev => ({ ...prev, additionalNotes: e.target.value }))}
-                        placeholder={t('classDetail.additionalNotesPlaceholder')}
+                        placeholder="e.g., We have ducks props available, focus on outdoor activities, link to recent school trip..."
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                       />
                     </div>
-
+                    
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">{t('classDetail.whatWillBeGenerated')}</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">What will be generated:</h4>
                       <ul className="text-sm text-gray-600 space-y-1">
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem1')}
+                          Circle Time / Hook activity with songs
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem2')}
+                          Attention Autism stages (Bucket Time, concept introduction)
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem3')}
+                          Main activity with differentiated entry points per student
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem4')}
+                          Continuous provision / play-based activities
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem5')}
+                          Resources checklist (visuals, props, materials)
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-emerald-500" />
-                          {t('classDetail.generatedItem6')}
+                          Communication goals embedded for each student
                         </li>
                       </ul>
                     </div>
@@ -1537,7 +1334,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       onClick={() => setShowLessonModal(false)}
                       className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      {t('common.cancel')}
+                      Cancel
                     </button>
                     <button
                       onClick={generateClassLesson}
@@ -1547,12 +1344,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       {generatingLesson ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>{t('common.generating')}...</span>
+                          <span>Generating...</span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4" />
-                          <span>{t('classDetail.generateLessonPlan')}</span>
+                          <span>Generate Lesson Plan</span>
                         </>
                       )}
                     </button>
@@ -1572,7 +1369,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                 onClick={() => {
                   setGeneratedLesson(lastLesson.content);
                   setCurrentLessonId(lastLesson.id);
-                  setVisualGroups(parseVisualGroups(lastLesson.visualSchedule));
+                  setVisualSteps(lastLesson.visualSchedule ? JSON.parse(lastLesson.visualSchedule) : null);
                 }}
                 className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
               >
@@ -1581,14 +1378,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     <FileText className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-gray-900">{t('classDetail.lastLesson')}: {lastLesson.lessonTopic}</p>
+                    <p className="text-sm font-semibold text-gray-900">Last Lesson: {lastLesson.lessonTopic}</p>
                     <p className="text-xs text-gray-500">
                       {lastLesson.curriculumArea} &middot; {new Date(lastLesson.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-emerald-600">
-                  <span className="text-sm font-medium">{t('common.view')}</span>
+                  <span className="text-sm font-medium">View</span>
                   <ChevronDown className="h-4 w-4" />
                 </div>
               </button>
@@ -1607,7 +1404,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   <FileText className="h-6 w-6 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{t('classDetail.classLessonPlan')}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Class Lesson Plan</h2>
                   {currentSavedLesson ? (
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-sm text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
@@ -1627,7 +1424,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       </span>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">{t('classDetail.lessonDifferentiated')}</p>
+                    <p className="text-sm text-gray-500">Unified lesson with differentiated entry points</p>
                   )}
                 </div>
               </div>
@@ -1642,73 +1439,32 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     }`}
                   >
                     <History className="h-4 w-4" />
-                    <span>{t('classDetail.history')} ({savedLessons.length})</span>
+                    <span>History ({savedLessons.length})</span>
                   </button>
                 )}
-                {/* Export Dropdown */}
-                <div className="relative" ref={exportDropdownRef}>
-                  <button
-                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                    disabled={exporting}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                  >
-                    {exporting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileDown className="h-4 w-4" />
-                    )}
-                    <span>{exporting ? t('common.exporting') : t('common.exportOptions')}</span>
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
-                  </button>
-                  {showExportDropdown && (
-                    <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                      <button
-                        onClick={handlePrint}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Printer className="h-4 w-4" />
-                        {t('common.print')}
-                      </button>
-                      <button
-                        onClick={handleExportPDF}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <FileText className="h-4 w-4" />
-                        {t('common.exportToPDF')}
-                      </button>
-                      <button
-                        onClick={handleExportWord}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <FileType className="h-4 w-4" />
-                        {t('common.exportToWord')}
-                      </button>
-                      <button
-                        onClick={handleExportPowerPoint}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Presentation className="h-4 w-4" />
-                        {t('common.exportToPowerPoint')}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print</span>
+                </button>
                 <button
                   onClick={() => setShowLessonModal(true)}
                   className="inline-flex items-center gap-2 px-3 py-2 text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
                 >
                   <Sparkles className="h-4 w-4" />
-                  <span>{t('classDetail.newLesson')}</span>
+                  <span>New Lesson</span>
                 </button>
                 <button
                   onClick={() => {
                     setGeneratedLesson(null);
                     setCurrentLessonId(null);
                     setShowLessonHistory(false);
-                    setVisualGroups([]);
+                    setVisualSteps(null);
                   }}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={t('classDetail.hideLesson')}
+                  title="Hide lesson"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1719,7 +1475,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {showLessonHistory && (
               <div className="mb-6 border border-gray-200 rounded-xl overflow-hidden no-print">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700">{t('classDetail.previousLessons')}</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">Previous Lessons</h3>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
                   {savedLessons.map((lesson) => (
@@ -1733,7 +1489,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       onClick={() => {
                         setGeneratedLesson(lesson.content);
                         setCurrentLessonId(lesson.id);
-                        setVisualGroups(parseVisualGroups(lesson.visualSchedule));
+                        setVisualSteps(lesson.visualSchedule ? JSON.parse(lesson.visualSchedule) : null);
                       }}
                     >
                       <div className="flex-1 min-w-0">
@@ -1742,7 +1498,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             {lesson.curriculumArea}
                           </span>
                           {lesson.id === currentLessonId && (
-                            <span className="text-xs text-emerald-600 font-medium">{t('classDetail.viewing')}</span>
+                            <span className="text-xs text-emerald-600 font-medium">Viewing</span>
                           )}
                         </div>
                         <p className="text-sm font-medium text-gray-900 truncate">{lesson.lessonTopic}</p>
@@ -1757,7 +1513,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm(t('classDetail.deleteLessonConfirm'))) {
+                          if (confirm('Delete this lesson plan?')) {
                             setDeletingLessonId(lesson.id);
                             fetch(`/api/classes/${classId}/lessons/${lesson.id}`, { method: 'DELETE' })
                               .then(res => {
@@ -1779,7 +1535,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               .finally(() => setDeletingLessonId(null));
                           }
                         }}
-                        className="ms-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                        className="ml-3 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                         title="Delete lesson"
                       >
                         {deletingLessonId === lesson.id ? (
@@ -1800,22 +1556,22 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   value={editedLessonContent}
                   onChange={(e) => setEditedLessonContent(e.target.value)}
                   className="w-full h-96 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y font-mono text-sm bg-white"
-                  placeholder={t('classDetail.editLessonPlaceholder')}
+                  placeholder="Edit your lesson plan..."
                 />
                 <div className="flex justify-end gap-2 mt-3">
                   <button
                     onClick={() => setEditingLesson(false)}
                     className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                   >
-                    <X className="h-4 w-4 me-1" />
-                    {t('common.cancel')}
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
                   </button>
                   <button
                     onClick={saveLessonEdit}
                     className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
                   >
-                    <Save className="h-4 w-4 me-1" />
-                    {t('classDetail.saveChanges')}
+                    <Save className="h-4 w-4 mr-1" />
+                    Save Changes
                   </button>
                 </div>
               </div>
@@ -1854,8 +1610,6 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         borderColor = 'border-violet-400'; bgColor = 'bg-violet-50'; textColor = 'text-violet-800'; icon = '✏️';
                       } else if (text.includes('continuous') || text.includes('practice') || text.includes('provision') || text.includes('consolidation')) {
                         borderColor = 'border-teal-400'; bgColor = 'bg-teal-50'; textColor = 'text-teal-800'; icon = '🎮';
-                      } else if (text.includes('additional resource')) {
-                        borderColor = 'border-sky-400'; bgColor = 'bg-sky-50'; textColor = 'text-sky-800'; icon = '🔗';
                       } else if (text.includes('resource') || text.includes('checklist')) {
                         borderColor = 'border-rose-400'; bgColor = 'bg-rose-50'; textColor = 'text-rose-800'; icon = '📦';
                       } else if (text.includes('differentiation') || text.includes('entry point')) {
@@ -1894,7 +1648,6 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                       else if (text.includes('curriculum') || text.includes('learning objective') || text.includes('aet focus') || text.includes('duration')) extraClass = 'text-emerald-700';
                       return <strong className={`font-semibold ${extraClass}`}>{children}</strong>;
                     },
-                    a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 underline decoration-sky-300 hover:decoration-sky-500 transition-colors">{children}</a>,
                     hr: () => <hr className="my-6 border-gray-200" />,
                   }}
                 >
@@ -1907,13 +1660,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {showRefineInput && !editingLesson && (
               <div className="mt-6 pt-4 border-t border-gray-200 no-print">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <RefreshCw className="h-4 w-4 inline me-1" />
-                  {t('classDetail.whatToChange')}
+                  <RefreshCw className="h-4 w-4 inline mr-1" />
+                  What would you like to change?
                 </label>
                 <textarea
                   value={refineFeedback}
                   onChange={(e) => setRefineFeedback(e.target.value)}
-                  placeholder={t('classDetail.refinePlaceholder')}
+                  placeholder="E.g., Make the bucket time activity more sensory-focused, add a calming break between stages, simplify the language for the worksheets..."
                   className="w-full h-24 p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
                   disabled={refiningLesson}
                 />
@@ -1923,7 +1676,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     disabled={refiningLesson}
                     className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
                   >
-                    {t('common.cancel')}
+                    Cancel
                   </button>
                   <button
                     onClick={refineLesson}
@@ -1933,12 +1686,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {refiningLesson ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        {t('common.refining')}...
+                        Refining...
                       </>
                     ) : (
                       <>
                         <RefreshCw className="h-4 w-4" />
-                        {t('classDetail.refineLesson')}
+                        Refine Lesson
                       </>
                     )}
                   </button>
@@ -1949,111 +1702,29 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
             {/* Lesson Action Buttons */}
             {!editingLesson && !showRefineInput && (
               <div className="flex flex-wrap justify-end gap-2 mt-6 pt-4 border-t border-gray-200 no-print">
-                {/* Generate Visuals Dropdown */}
-                <div className="relative" ref={visualsDropdownRef}>
-                  <button
-                    onClick={() => { setShowVisualsDropdown(!showVisualsDropdown); setShowCustomPromptInput(false); }}
-                    disabled={!!generatingVisualId}
-                    className="inline-flex items-center px-3 py-2 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors disabled:opacity-50"
-                  >
-                    {generatingVisualId ? (
-                      <>
-                        <Loader2 className="h-4 w-4 me-1 animate-spin" />
-                        {t('common.generating')}...
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="h-4 w-4 me-1" />
-                        {t('classDetail.generateVisuals')}
-                        <ChevronDown className={`h-3.5 w-3.5 ms-1 transition-transform ${showVisualsDropdown ? 'rotate-180' : ''}`} />
-                      </>
-                    )}
-                  </button>
-                  {showVisualsDropdown && (
-                    <div className="absolute start-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
-                      {/* Generate Lesson Schedule */}
-                      <button
-                        onClick={() => generateVisualGroup('lesson_schedule')}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
-                      >
-                        <BookOpen className="h-4 w-4 shrink-0" />
-                        <span>{t('classDetail.generateLessonSchedule')}</span>
-                        {visualGroups.some(g => g.type === 'lesson_schedule') && (
-                          <span className="ms-auto text-[10px] text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded">✓</span>
-                        )}
-                      </button>
-                      {/* Divider */}
-                      <div className="border-t border-gray-100 my-1" />
-                      {/* Generate Student Tasks */}
-                      {students.map(student => (
-                        <button
-                          key={student.id}
-                          onClick={() => generateVisualGroup('student_tasks', student.id)}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
-                        >
-                          <Target className="h-4 w-4 shrink-0" />
-                          <span>{student.firstName}{t('classDetail.generateStudentTasks')}</span>
-                          {visualGroups.some(g => g.type === 'student_tasks' && g.studentId === student.id) && (
-                            <span className="ms-auto text-[10px] text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded">✓</span>
-                          )}
-                        </button>
-                      ))}
-                      {/* Divider */}
-                      <div className="border-t border-gray-100 my-1" />
-                      {/* Generate Custom */}
-                      <button
-                        onClick={() => { setShowCustomPromptInput(true); setShowVisualsDropdown(false); }}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition-colors"
-                      >
-                        <Wand2 className="h-4 w-4 shrink-0" />
-                        <span>{t('classDetail.generateCustomVisual')}</span>
-                      </button>
-                    </div>
+                <button
+                  onClick={generateVisualSchedule}
+                  disabled={generatingVisuals}
+                  className="inline-flex items-center px-3 py-2 bg-violet-50 text-violet-700 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors disabled:opacity-50"
+                >
+                  {generatingVisuals ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="h-4 w-4 mr-1" />
+                      Generate Visual Schedule
+                    </>
                   )}
-                </div>
-                {/* Custom Visual Prompt Input (inline) */}
-                {showCustomPromptInput && (
-                  <div className="w-full mt-2 p-3 bg-violet-50 border border-violet-200 rounded-xl">
-                    <label className="block text-sm font-medium text-violet-800 mb-1.5">
-                      <Wand2 className="h-3.5 w-3.5 inline me-1" />
-                      {t('classDetail.customVisualPromptTitle')}
-                    </label>
-                    <textarea
-                      value={customVisualPrompt}
-                      onChange={(e) => setCustomVisualPrompt(e.target.value)}
-                      placeholder={t('classDetail.customVisualPromptPlaceholder')}
-                      className="w-full h-20 p-2.5 border border-violet-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none bg-white"
-                      disabled={!!generatingVisualId}
-                    />
-                    <div className="flex justify-end gap-2 mt-2">
-                      <button
-                        onClick={() => { setShowCustomPromptInput(false); setCustomVisualPrompt(''); }}
-                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (customVisualPrompt.trim()) {
-                            generateVisualGroup('custom', undefined, customVisualPrompt.trim());
-                            setCustomVisualPrompt('');
-                          }
-                        }}
-                        disabled={!customVisualPrompt.trim() || !!generatingVisualId}
-                        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        {t('classDetail.customVisualGenerate')}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </button>
                 <button
                   onClick={() => setShowRefineInput(true)}
                   className="inline-flex items-center px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
                 >
-                  <RefreshCw className="h-4 w-4 me-1" />
-                  {t('classDetail.refineLesson')}
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refine Lesson
                 </button>
                 <button
                   onClick={() => {
@@ -2062,15 +1733,15 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                   }}
                   className="inline-flex items-center px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
                 >
-                  <Pencil className="h-4 w-4 me-1" />
-                  {t('common.edit')}
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit
                 </button>
                 <button
                   onClick={deleteCurrentLesson}
                   className="inline-flex items-center px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4 me-1" />
-                  {t('common.delete')}
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
                 </button>
               </div>
             )}
@@ -2080,270 +1751,195 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm text-red-700 font-medium">{t('classDetail.visualScheduleError')}</p>
+                  <p className="text-sm text-red-700 font-medium">Visual Schedule Error</p>
                   <p className="text-xs text-red-600">{visualError}</p>
                 </div>
-                <button onClick={() => setVisualError(null)} className="ms-auto text-red-400 hover:text-red-600">
+                <button onClick={() => setVisualError(null)} className="ml-auto text-red-400 hover:text-red-600">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            {/* Visual Schedule Display — renders each visual group independently */}
-            {visualGroups.length > 0 && (
-              <div className="mt-6 pt-6 border-t-2 border-violet-200 space-y-6" id="visual-schedule">
-                {/* Overall header */}
-                <div className="flex items-center justify-between">
+            {/* Visual Schedule Display */}
+            {visualSteps && visualSteps.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-violet-200" id="visual-schedule">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-violet-100 rounded-lg">
                       <ImageIcon className="h-5 w-5 text-violet-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">{t('classDetail.visualSchedule')}</h3>
-                      <p className="text-xs text-gray-500">{t('classDetail.visualScheduleHint')}</p>
+                      <h3 className="text-lg font-bold text-gray-900">Visual Schedule</h3>
+                      <p className="text-xs text-gray-500">Drag to reorder • Hover for options</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 no-print">
-                    {/* Global export dropdown */}
-                    <div className="relative" ref={visualExportDropdownRef}>
-                      <button
-                        onClick={() => setShowVisualExportDropdown(!showVisualExportDropdown)}
-                        disabled={exporting}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors disabled:opacity-50"
-                      >
-                        {exporting ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <FileDown className="h-3 w-3" />
-                        )}
-                        <span>{exporting ? t('common.exporting') : t('common.exportOptions')}</span>
-                        <ChevronDown className={`h-2.5 w-2.5 transition-transform ${showVisualExportDropdown ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showVisualExportDropdown && (
-                        <div className="absolute end-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                          <button
-                            onClick={handlePrint}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <Printer className="h-4 w-4" />
-                            {t('common.print')}
-                          </button>
-                          <button
-                            onClick={handleExportPDF}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <FileText className="h-4 w-4" />
-                            {t('common.exportToPDF')}
-                          </button>
-                          <button
-                            onClick={handleExportWord}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <FileType className="h-4 w-4" />
-                            {t('common.exportToWord')}
-                          </button>
-                          <button
-                            onClick={handleExportPowerPoint}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <Presentation className="h-4 w-4" />
-                            {t('common.exportToPowerPoint')}
-                          </button>
-                        </div>
-                      )}
-                    </div>
                     <button
-                      onClick={() => setVisualGroups([])}
+                      onClick={() => {
+                        setNewCardLabel('');
+                        setCardSearchQuery('');
+                        setCardSearchResults([]);
+                        setCardModalTab('search');
+                        setUploadCardName('');
+                        setUploadCardImage(null);
+                        fetchCustomCards();
+                        setShowAddCardModal(true);
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Card
+                    </button>
+                    <button
+                      onClick={generateVisualSchedule}
+                      disabled={generatingVisuals}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${generatingVisuals ? 'animate-spin' : ''}`} />
+                      Regenerate All
+                    </button>
+                    <button
+                      onClick={printVisualSchedule}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-700 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                    >
+                      <Printer className="h-3 w-3" />
+                      Print
+                    </button>
+                    <button
+                      onClick={() => setVisualSteps(null)}
                       className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title={t('classDetail.hideVisualSchedule')}
+                      title="Hide visual schedule"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Individual visual groups */}
-                {visualGroups.map((group) => (
-                  <div key={group.id} className="print-visual-schedule">
-                    {/* Group header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700">{group.label}</h4>
-                      <div className="flex items-center gap-1.5 no-print">
-                        <button
-                          onClick={() => {
-                            setAddCardGroupId(group.id);
-                            setNewCardLabel('');
-                            setCardSearchQuery('');
-                            setCardSearchResults([]);
-                            setCardModalTab('search');
-                            setUploadCardName('');
-                            setUploadCardImage(null);
-                            fetchCustomCards();
-                            setShowAddCardModal(true);
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-violet-700 bg-violet-50 rounded-lg text-xs hover:bg-violet-100 transition-colors"
+                {/* The Visual Strip */}
+                <div className="bg-white border-2 border-violet-100 rounded-xl p-6 print-visual-schedule">
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {visualSteps.map((step, index) => (
+                      <div key={`${step.label}-${index}`} className="flex items-center gap-1">
+                        <div
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragEnter={() => handleDragEnter(index)}
+                          onDragLeave={() => handleDragLeave(index)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => handleDrop(index)}
+                          onDragEnd={handleDragEnd}
+                          className={`group relative flex flex-col items-center w-28 p-3 bg-white border-2 rounded-xl transition-all cursor-grab active:cursor-grabbing ${
+                            draggedIndex === index
+                              ? 'opacity-40 border-violet-400 scale-95'
+                              : dragOverIndex === index
+                              ? 'border-violet-500 bg-violet-50 scale-105 shadow-lg'
+                              : 'border-gray-200 hover:border-violet-300'
+                          }`}
                         >
-                          <Plus className="h-3 w-3" />
-                          {t('classDetail.addCard')}
-                        </button>
-                        <button
-                          onClick={() => generateVisualGroup(group.type, group.studentId, group.customPrompt)}
-                          disabled={generatingVisualId === group.id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-violet-700 bg-violet-50 rounded-lg text-xs hover:bg-violet-100 transition-colors disabled:opacity-50"
-                        >
-                          <RefreshCw className={`h-3 w-3 ${generatingVisualId === group.id ? 'animate-spin' : ''}`} />
-                          {t('classDetail.regenerateAll')}
-                        </button>
-                        <button
-                          onClick={() => removeVisualGroup(group.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-red-600 bg-red-50 rounded-lg text-xs hover:bg-red-100 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                          {t('classDetail.removeSchedule')}
-                        </button>
-                      </div>
-                    </div>
+                          {/* Drag handle */}
+                          <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <GripVertical className="h-3 w-3 text-gray-300" />
+                          </div>
 
-                    {/* Loading skeleton while this group is generating */}
-                    {generatingVisualId === group.id ? (
-                      <div className="bg-white border-2 border-violet-100 rounded-xl p-6">
-                        <div className="flex flex-wrap justify-center gap-3">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <div key={n} className="flex flex-col items-center w-28 p-3 border-2 border-gray-100 rounded-xl animate-pulse">
-                              <div className="w-20 h-20 mb-2 bg-gray-200 rounded-lg" />
-                              <div className="w-16 h-3 bg-gray-200 rounded" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      /* The Visual Strip for this group */
-                      <div className="bg-white border-2 border-violet-100 rounded-xl p-6">
-                        <div className="flex flex-wrap justify-center gap-3">
-                          {group.steps.map((step, index) => (
-                            <div key={`${group.id}-${step.label}-${index}`} className="flex items-center gap-1">
-                              <div
-                                draggable
-                                onDragStart={() => handleDragStart(group.id, index)}
-                                onDragEnter={() => handleDragEnter(index)}
-                                onDragLeave={() => handleDragLeave(index)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => handleDrop(group.id, index)}
-                                onDragEnd={handleDragEnd}
-                                className={`group/card relative flex flex-col items-center w-28 p-3 bg-white border-2 rounded-xl transition-all cursor-grab active:cursor-grabbing ${
-                                  dragGroupId === group.id && draggedIndex === index
-                                    ? 'opacity-40 border-violet-400 scale-95'
-                                    : dragGroupId === group.id && dragOverIndex === index
-                                    ? 'border-violet-500 bg-violet-50 scale-105 shadow-lg'
-                                    : 'border-gray-200 hover:border-violet-300'
-                                }`}
-                              >
-                                {/* Drag handle */}
-                                <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                  <GripVertical className="h-3 w-3 text-gray-300" />
-                                </div>
-
-                                {/* Action buttons on hover */}
-                                <div className="absolute -top-2 -right-2 flex gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); regenerateCard(group.id, index); }}
-                                    disabled={regeneratingCard?.groupId === group.id && regeneratingCard?.index === index}
-                                    className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
-                                    title={t('classDetail.tryDifferentPicture')}
-                                  >
-                                    {regeneratingCard?.groupId === group.id && regeneratingCard?.index === index ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <RefreshCw className="h-3 w-3" />
-                                    )}
-                                  </button>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); removeVisualStep(group.id, index); }}
-                                    className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                                    title={t('classDetail.removeCard')}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                                
-                                {/* Pictogram */}
-                                <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
-                                  {step.pictogramUrl ? (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img 
-                                      src={step.pictogramUrl}
-                                      alt={step.label}
-                                      className="w-full h-full object-contain"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                      <ImageIcon className="h-8 w-8" />
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Label — click to edit */}
-                                {editingCard?.groupId === group.id && editingCard?.index === index ? (
-                                  <input
-                                    autoFocus
-                                    type="text"
-                                    defaultValue={step.label}
-                                    className="text-xs font-bold text-gray-800 text-center leading-tight w-full bg-violet-50 border border-violet-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-violet-400"
-                                    onBlur={(e) => {
-                                      const newLabel = e.target.value.trim();
-                                      setEditingCard(null);
-                                      if (newLabel && newLabel !== step.label) {
-                                        const newSteps = [...group.steps];
-                                        newSteps[index] = { ...newSteps[index], label: newLabel };
-                                        updateGroupSteps(group.id, newSteps);
-                                      }
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                                      if (e.key === 'Escape') setEditingCard(null);
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    onDragStart={(e) => e.preventDefault()}
-                                  />
-                                ) : (
-                                  <span
-                                    className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
-                                    onClick={(e) => { e.stopPropagation(); setEditingCard({ groupId: group.id, index }); }}
-                                    title={t('classDetail.clickToRename')}
-                                  >
-                                    {step.label}
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {/* Arrow between steps */}
-                              {index < group.steps.length - 1 && (
-                                <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block rtl:rotate-180" />
+                          {/* Action buttons on hover */}
+                          <div className="absolute -top-2 -right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); regenerateCard(index); }}
+                              disabled={regeneratingCardIndex === index}
+                              className="w-5 h-5 bg-violet-500 text-white rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors disabled:opacity-50"
+                              title="Try different picture"
+                            >
+                              {regeneratingCardIndex === index ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3 w-3" />
                               )}
-                            </div>
-                          ))}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeVisualStep(index); }}
+                              className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                              title="Remove card"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                          
+                          {/* Pictogram */}
+                          <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
+                            {step.pictogramUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img 
+                                src={step.pictogramUrl}
+                                alt={step.label}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-300"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                <ImageIcon className="h-8 w-8" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Label — click to edit */}
+                          {editingCardIndex === index ? (
+                            <input
+                              autoFocus
+                              type="text"
+                              defaultValue={step.label}
+                              className="text-xs font-bold text-gray-800 text-center leading-tight w-full bg-violet-50 border border-violet-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-violet-400"
+                              onBlur={(e) => {
+                                const newLabel = e.target.value.trim();
+                                setEditingCardIndex(null);
+                                if (newLabel && newLabel !== step.label && visualSteps) {
+                                  const updated = [...visualSteps];
+                                  updated[index] = { ...updated[index], label: newLabel };
+                                  setVisualSteps(updated);
+                                  saveVisualSchedule(updated);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                if (e.key === 'Escape') setEditingCardIndex(null);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onDragStart={(e) => e.preventDefault()}
+                            />
+                          ) : (
+                            <span
+                              className="text-xs font-bold text-gray-800 text-center leading-tight cursor-text hover:text-violet-700 hover:underline hover:underline-offset-2 hover:decoration-dotted"
+                              onClick={(e) => { e.stopPropagation(); setEditingCardIndex(index); }}
+                              title="Click to rename"
+                            >
+                              {step.label}
+                            </span>
+                          )}
                         </div>
+                        
+                        {/* Arrow between steps */}
+                        {index < visualSteps.length - 1 && (
+                          <ArrowRight className="h-5 w-5 text-violet-300 shrink-0 hidden sm:block" />
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-
-                {/* ARASAAC Attribution */}
-                <div className="text-center">
-                  <p className="text-[10px] text-gray-400">
-                    {t('classDetail.arasaacAttribution')}{' '}
-                    <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
-                      ARASAAC
-                    </a>
-                    {' '}&mdash; Gobierno de Arag&oacute;n. {t('classDetail.licensedUnder')}{' '}
-                    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
-                      CC BY-NC-SA 4.0
-                    </a>
-                  </p>
+                  
+                  {/* ARASAAC Attribution */}
+                  <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+                    <p className="text-[10px] text-gray-400">
+                      Pictograms by{' '}
+                      <a href="https://arasaac.org" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                        ARASAAC
+                      </a>
+                      {' '}— Gobierno de Aragón. Licensed under{' '}
+                      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">
+                        CC BY-NC-SA 4.0
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -2358,7 +1954,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         <div className="p-2 bg-violet-100 rounded-lg">
                           <Plus className="h-5 w-5 text-violet-600" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">{t('classDetail.addVisualCard')}</h3>
+                        <h3 className="text-lg font-bold text-gray-900">Add Visual Card</h3>
                       </div>
                       <button
                         onClick={() => setShowAddCardModal(false)}
@@ -2371,12 +1967,12 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {/* Card label input — shown for search & custom tabs */}
                     {cardModalTab !== 'upload' && (
                       <div className="mb-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.cardLabel')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Card Label</label>
                         <input
                           type="text"
                           value={newCardLabel}
                           onChange={(e) => setNewCardLabel(e.target.value)}
-                          placeholder={t('classDetail.cardLabelPlaceholder')}
+                          placeholder="E.g., Wash Hands, Sit Down, Good Listening..."
                           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                         />
                       </div>
@@ -2393,7 +1989,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <Search className="h-3.5 w-3.5" />
-                        {t('classDetail.arasaacSearch')}
+                        ARASAAC Search
                       </button>
                       <button
                         onClick={() => setCardModalTab('custom')}
@@ -2404,7 +2000,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <ImageIcon className="h-3.5 w-3.5" />
-                        {t('classDetail.customCards')}{customCards.length > 0 && ` (${customCards.length})`}
+                        Custom Cards{customCards.length > 0 && ` (${customCards.length})`}
                       </button>
                       <button
                         onClick={() => setCardModalTab('upload')}
@@ -2415,7 +2011,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         }`}
                       >
                         <Upload className="h-3.5 w-3.5" />
-                        {t('classDetail.uploadNew')}
+                        Upload New
                       </button>
                     </div>
                   </div>
@@ -2444,7 +2040,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 searchPictograms(cardSearchQuery);
                               }
                             }}
-                            placeholder={t('classDetail.searchPlaceholder')}
+                            placeholder="Search pictograms... (e.g., happy, eat, book, toilet)"
                             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                           />
                           {cardSearching && (
@@ -2475,14 +2071,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         ) : cardSearchQuery.trim().length >= 2 && !cardSearching ? (
                           <div className="text-center py-12">
                             <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">{t('classDetail.noPictogramsFound')} &ldquo;{cardSearchQuery}&rdquo;</p>
-                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.trySimpler')}</p>
+                            <p className="text-sm text-gray-500">No pictograms found for &ldquo;{cardSearchQuery}&rdquo;</p>
+                            <p className="text-xs text-gray-400 mt-1">Try a simpler word like &ldquo;sit&rdquo;, &ldquo;eat&rdquo;, &ldquo;happy&rdquo;</p>
                           </div>
                         ) : (
                           <div className="text-center py-12">
                             <Search className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">{t('classDetail.searchToPictogram')}</p>
-                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.typeAtLeast')}</p>
+                            <p className="text-sm text-gray-500">Search for a pictogram to add</p>
+                            <p className="text-xs text-gray-400 mt-1">Type at least 2 characters to search the ARASAAC database</p>
                           </div>
                         )}
                       </div>
@@ -2523,14 +2119,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                         ) : (
                           <div className="text-center py-12">
                             <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">{t('classDetail.noCustomCards')}</p>
-                            <p className="text-xs text-gray-400 mt-1">{t('classDetail.uploadInOtherTab')}</p>
+                            <p className="text-sm text-gray-500">No custom cards yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Upload your own images in the &ldquo;Upload New&rdquo; tab</p>
                             <button
                               onClick={() => setCardModalTab('upload')}
                               className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-violet-700 bg-violet-50 rounded-lg text-sm hover:bg-violet-100"
                             >
                               <Upload className="h-3 w-3" />
-                              {t('classDetail.uploadACard')}
+                              Upload a Card
                             </button>
                           </div>
                         )}
@@ -2541,18 +2137,18 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                     {cardModalTab === 'upload' && (
                       <div className="max-w-md mx-auto">
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.cardName')}</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Card Name *</label>
                           <input
                             type="text"
                             value={uploadCardName}
                             onChange={(e) => setUploadCardName(e.target.value)}
-                            placeholder={t('classDetail.cardNamePlaceholder')}
+                            placeholder="E.g., My Fidget Toy, Quiet Area, Token Board..."
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                           />
                         </div>
 
                         <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">{t('classDetail.image')}</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Image *</label>
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -2572,7 +2168,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 onClick={() => { setUploadCardImage(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                                 className="mt-2 text-xs text-red-500 hover:text-red-700"
                               >
-                                {t('classDetail.removeImage')}
+                                Remove image
                               </button>
                             </div>
                           ) : (
@@ -2581,8 +2177,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               className="w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-violet-400 hover:bg-violet-50 transition-colors"
                             >
                               <Upload className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">{t('classDetail.clickToSelect')}</p>
-                              <p className="text-xs text-gray-400 mt-1">{t('classDetail.imageFormats')}</p>
+                              <p className="text-sm text-gray-500">Click to select an image</p>
+                              <p className="text-xs text-gray-400 mt-1">PNG, JPG, or GIF — max 2MB</p>
                             </button>
                           )}
                         </div>
@@ -2595,17 +2191,17 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                           {uploadingCard ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              {t('common.uploading')}
+                              Uploading...
                             </>
                           ) : (
                             <>
                               <Upload className="h-4 w-4" />
-                              {t('classDetail.saveCustomCard')}
+                              Save Custom Card
                             </>
                           )}
                         </button>
                         <p className="text-xs text-gray-400 mt-2 text-center">
-                          {t('classDetail.cardSavedNote')}
+                          The card will be saved and available for all future visual schedules.
                         </p>
                       </div>
                     )}
@@ -2619,20 +2215,20 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
         {/* Students Grid */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('classDetail.studentsTitle')}</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Students</h2>
         </div>
 
         {students.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{t('classDetail.noStudentsYet')}</h3>
-            <p className="text-gray-600 mb-4">{t('classDetail.noStudentsDesc')}</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Yet</h3>
+            <p className="text-gray-600 mb-4">Add students to this class in the admin panel.</p>
             <Link
               href="/admin"
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
             >
               <Settings className="h-4 w-4" />
-              {t('classDetail.goToAdmin')}
+              Go to Admin
             </Link>
           </div>
         ) : (
@@ -2702,13 +2298,13 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                           href={`/students/${student.id}`}
                           className="flex-1 text-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                         >
-                          {t('common.profile')}
+                          Profile
                         </Link>
                         <Link
                           href={`/students/${student.id}/aet`}
                           className="flex-1 text-center px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
                         >
-                          {t('classDetail.allGoals')}
+                          All Goals
                         </Link>
                       </div>
                     </div>
@@ -2723,8 +2319,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-3 animate-success-pulse">
                                 <Check className="h-10 w-10 text-green-500" />
                               </div>
-                              <p className="text-white font-bold text-lg animate-fade-in-up">{t('classDetail.goalCompleted')}</p>
-                              <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>{t('classDetail.movingToNext')}</p>
+                              <p className="text-white font-bold text-lg animate-fade-in-up">Goal Completed!</p>
+                              <p className="text-green-100 text-sm mt-1 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>Moving to next goal...</p>
                             </div>
                           )}
                           
@@ -2733,14 +2329,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             <div className="flex items-center gap-2">
                               <Target className={`h-5 w-5 ${colors.text}`} />
                               <span className="text-sm font-semibold text-gray-700">
-                                {isAtCurrentGoal ? t('classDetail.currentGoal') : t('classDetail.viewingGoal')}
+                                {isAtCurrentGoal ? 'Current Goal' : 'Viewing Goal'}
                               </span>
                               <span className={`text-xs px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} border ${colors.border}`}>
                                 {displayedGoal.area.name}
                               </span>
                               {!isAtCurrentGoal && (
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${progress?.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                  {progress?.completed ? t('classDetail.completed') : t('classDetail.notCurrent')}
+                                  {progress?.completed ? 'Completed' : 'Not Current'}
                                 </span>
                               )}
                             </div>
@@ -2751,10 +2347,10 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 <button
                                   onClick={() => jumpToCurrentGoal(student.id)}
                                   className="mr-1 px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors flex items-center gap-1"
-                                  title={t('classDetail.jumpToCurrentGoal')}
+                                  title="Jump to current goal"
                                 >
                                   <SkipForward className="h-3 w-3" />
-                                  {t('classDetail.jumpToCurrentGoal')}
+                                  Current
                                 </button>
                               )}
                               <button
@@ -2839,7 +2435,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                             >
                               <span className="flex items-center gap-2">
                                 <Sparkles className="h-4 w-4" />
-                                {hasPlan ? t('classDetail.viewGoalPlan') : t('classDetail.addGoalPlan')}
+                                {hasPlan ? 'View Goal Plan' : 'Add Goal Plan'}
                               </span>
                               {isGoalExpanded ? (
                                 <ChevronUp className="h-4 w-4" />
@@ -2856,7 +2452,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                   <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                                     <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
                                     <div>
-                                      <p className="text-sm text-red-700 font-medium">{t('classDetail.generationFailed')}</p>
+                                      <p className="text-sm text-red-700 font-medium">Generation Failed</p>
                                       <p className="text-xs text-red-600">{generationError}</p>
                                     </div>
                                   </div>
@@ -2865,8 +2461,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                 {generatingPlan === goalKey ? (
                                   <div className="text-center py-8">
                                     <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-3" />
-                                    <p className="text-sm text-gray-600 font-medium">{t('classDetail.generatingGoalOverview')}</p>
-                                    <p className="text-xs text-gray-500 mt-1">{t('classDetail.analyzingProfile').replace('{name}', student.firstName)}</p>
+                                    <p className="text-sm text-gray-600 font-medium">Generating goal overview...</p>
+                                    <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
                                   </div>
                                 ) : editingPlan === goalKey ? (
                                   <div>
@@ -2874,7 +2470,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                       value={editedPlan}
                                       onChange={(e) => setEditedPlan(e.target.value)}
                                       className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-sm bg-white"
-                                      placeholder={t('classDetail.writeGoalPlan')}
+                                      placeholder="Write your goal plan..."
                                     />
                                     <div className="flex justify-end gap-2 mt-3">
                                       <button
@@ -2882,14 +2478,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                                       >
                                         <X className="h-4 w-4 mr-1" />
-                                        {t('common.cancel')}
+                                        Cancel
                                       </button>
                                       <button
                                         onClick={() => savePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
                                       >
                                         <Save className="h-4 w-4 mr-1" />
-                                        {t('classDetail.savePlan')}
+                                        Save Plan
                                       </button>
                                     </div>
                                   </div>
@@ -2926,7 +2522,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-ai-50 text-ai-600 rounded-lg text-sm font-medium hover:bg-ai-100"
                                       >
                                         <RefreshCw className="h-4 w-4 mr-1" />
-                                        {t('classDetail.regenerate')}
+                                        Regenerate
                                       </button>
                                       <button
                                         onClick={() => {
@@ -2936,14 +2532,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100"
                                       >
                                         <Pencil className="h-4 w-4 mr-1" />
-                                        {t('common.edit')}
+                                        Edit
                                       </button>
                                       <button
                                         onClick={() => deletePlan(student.id, displayedGoal.subcategoryId)}
                                         className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"
                                       >
                                         <Trash2 className="h-4 w-4 mr-1" />
-                                        {t('common.delete')}
+                                        Delete
                                       </button>
                                     </div>
 
@@ -2995,7 +2591,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700 mb-2">
                                         <MessageCircle className="h-4 w-4 inline mr-1" />
-                                        {t('classDetail.additionalContext')}
+                                        Additional Context
                                       </label>
                                       <textarea
                                         value={customInstructions[goalKey!] || ''}
@@ -3003,7 +2599,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                           ...prev,
                                           [goalKey!]: e.target.value
                                         }))}
-                                        placeholder={t('classDetail.addExtraContextPlaceholder').replace('{name}', student.firstName)}
+                                        placeholder={`Add extra context for ${student.firstName}'s goal...`}
                                         className="w-full h-20 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm bg-white"
                                       />
                                     </div>
@@ -3012,14 +2608,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         onClick={() => setShowInstructions(null)}
                                         className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                                       >
-                                        {t('common.cancel')}
+                                        Cancel
                                       </button>
                                       <button
                                         onClick={() => generatePlan(student, displayedGoal.subcategoryId, displayedGoal.area.name, displayedGoal.category.name, displayedGoal.subcategory)}
                                         className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
-                                        {t('classDetail.generatePlan')}
+                                        Generate Plan
                                       </button>
                                     </div>
                                   </div>
@@ -3028,7 +2624,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                     <div className="text-center py-4">
                                       <Wand2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                                       <p className="text-sm text-gray-600">
-                                        {t('classDetail.getGoalGuidance')} <strong>{displayedGoal.subcategory.name}</strong>
+                                        Get goal guidance for <strong>{displayedGoal.subcategory.name}</strong>
                                       </p>
                                     </div>
                                     <div className="flex flex-wrap justify-center gap-3">
@@ -3037,14 +2633,14 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-4 py-2 bg-ai-500 text-white rounded-lg text-sm font-medium hover:bg-ai-600"
                                       >
                                         <Wand2 className="h-4 w-4 mr-1" />
-                                        {t('classDetail.generateWithAI')}
+                                        Generate with AI
                                       </button>
                                       <button
                                         onClick={() => setShowInstructions(goalKey)}
                                         className="inline-flex items-center px-4 py-2 bg-white text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-50 border border-primary-200"
                                       >
                                         <MessageCircle className="h-4 w-4 mr-1" />
-                                        {t('classDetail.addExtraContext')}
+                                        Add Extra Context
                                       </button>
                                       <button
                                         onClick={() => {
@@ -3054,7 +2650,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                                         className="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-200"
                                       >
                                         <Pencil className="h-4 w-4 mr-1" />
-                                        {t('classDetail.writeManually')}
+                                        Write Manually
                                       </button>
                                     </div>
                                   </div>
@@ -3070,8 +2666,8 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
                               <Check className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                              <span className="text-base font-semibold text-green-800">{t('classDetail.allGoalsCompleted')}</span>
-                              <p className="text-sm text-green-600">{t('classDetail.greatProgress')}</p>
+                              <span className="text-base font-semibold text-green-800">All AET goals completed!</span>
+                              <p className="text-sm text-green-600">Great progress on the framework</p>
                             </div>
                           </div>
                         </div>

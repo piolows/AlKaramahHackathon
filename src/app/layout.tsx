@@ -7,7 +7,8 @@ import {
   Montserrat,
   Cabin,
   Merriweather_Sans,
-  Noto_Sans_Arabic
+  Noto_Sans_Arabic,
+  Poppins
 } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -56,6 +57,12 @@ const notoSansArabic = Noto_Sans_Arabic({
   weight: ["400", "500", "600", "700"],
 });
 
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "TrainTracks - Special Education Resource Hub",
   description: "Empowering teachers of autistic children with personalized learning plans based on the AET Progression Framework",
@@ -69,7 +76,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} ${notoSansArabic.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoSerif.variable} ${ptSerif.variable} ${montserrat.variable} ${cabin.variable} ${merriweatherSans.variable} ${notoSansArabic.variable} ${poppins.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
+        style={{ fontFamily: "var(--font-poppins), 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       >
         <LanguageProvider>
           {/* <Header /> */}

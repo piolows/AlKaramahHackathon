@@ -542,42 +542,38 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
     }
   }
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!student) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('studentProfile.studentNotFound')}</h1>
-          <Link href="/classes" className="text-primary-600 hover:underline">
-            {t('studentProfile.returnToClasses')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
-      {/* Page Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
-        <Breadcrumb items={[
-          { label: t('classesPage.title'), href: '/classes' },
-          { label: student.className, href: `/classes/${student.classId}` },
-          { label: `${student.firstName} ${student.lastName}` }
-        ]} />
+      {/* Breadcrumb - always visible */}
+      <Breadcrumb items={[
+        { label: t('classesPage.title'), href: '/classes' },
+        { label: loading ? '...' : (student?.className || 'Class'), href: student ? `/classes/${student.classId}` : '/classes' },
+        { label: loading ? '...' : (student ? `${student.firstName} ${student.lastName}` : 'Student') }
+      ]} />
 
-        {/* Back Button */}
-        <Link
-          href={`/classes/${student.classId}`}
-          className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 me-2" />
-          {t('studentProfile.backTo')} {student.className}
-        </Link>
+      {loading ? (
+        <LoadingSpinner />
+      ) : !student ? (
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('studentProfile.studentNotFound')}</h1>
+            <Link href="/classes" className="text-primary-600 hover:underline">
+              {t('studentProfile.returnToClasses')}
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Page Content */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Back Button */}
+            <Link
+              href={`/classes/${student.classId}`}
+              className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 me-2" />
+              {t('studentProfile.backTo')} {student.className}
+            </Link>
 
         {/* Student Header Card */}
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mb-8">
@@ -823,6 +819,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
