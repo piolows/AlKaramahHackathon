@@ -16,6 +16,7 @@ interface LanguageContextType {
   setLocale: (locale: Locale) => void;
   t: (key: string) => string;
   dir: 'ltr' | 'rtl';
+  isHydrated: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -67,7 +68,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [mounted, locale, dir]);
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t, dir }}>
+    <LanguageContext.Provider value={{ locale, setLocale, t, dir, isHydrated: mounted }}>
       {children}
     </LanguageContext.Provider>
   );

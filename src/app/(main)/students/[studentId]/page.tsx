@@ -426,7 +426,7 @@ function EditableText({
 
 export default function StudentProfilePage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
-  const { t, locale } = useLanguage();
+  const { t, locale, isHydrated } = useLanguage();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -482,7 +482,9 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
   };
 
   useEffect(() => {
+    if (!isHydrated) return;
     async function fetchStudent() {
+      setLoading(true);
       try {
         const res = await fetch(`/api/students/${studentId}?lang=${locale}`);
         if (res.ok) {
@@ -506,7 +508,7 @@ export default function StudentProfilePage({ params }: { params: Promise<{ stude
       }
     }
     fetchStudent();
-  }, [studentId, locale]);
+  }, [studentId, locale, isHydrated]);
 
   // Save changes to database
   async function saveChanges() {

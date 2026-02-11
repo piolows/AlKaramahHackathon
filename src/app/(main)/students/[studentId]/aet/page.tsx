@@ -82,7 +82,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
   const [goalVisuals, setGoalVisuals] = useState<Record<string, GoalVisual[]>>({});
   const [generatingVisuals, setGeneratingVisuals] = useState<string | null>(null);
   const [visualsError, setVisualsError] = useState<string | null>(null);
-  const { t, locale } = useLanguage();
+  const { t, locale, isHydrated } = useLanguage();
   const framework = locale === 'ar' ? AET_FRAMEWORK_AR : AET_FRAMEWORK;
   const [planLanguage, setPlanLanguage] = useState<'en' | 'ar'>('en');
 
@@ -119,8 +119,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         setLoading(false);
       }
     }
+    if (!isHydrated) return;
     fetchData();
-  }, [studentId, locale]);
+  }, [studentId, locale, isHydrated]);
 
   // Sync plan language with site locale
   useEffect(() => {

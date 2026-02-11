@@ -47,7 +47,7 @@ interface Student {
 type Tab = 'classes' | 'students'
 
 export default function AdminPage() {
-  const { t, locale } = useLanguage()
+  const { t, locale, isHydrated } = useLanguage()
   const [activeTab, setActiveTab] = useState<Tab>('classes')
   const [classes, setClasses] = useState<Class[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -88,8 +88,9 @@ export default function AdminPage() {
   const BackArrow = locale === 'ar' ? ArrowRight : ArrowLeft
 
   useEffect(() => {
+    if (!isHydrated) return
     fetchData()
-  }, [locale])
+  }, [locale, isHydrated])
 
   async function fetchData() {
     setLoading(true)

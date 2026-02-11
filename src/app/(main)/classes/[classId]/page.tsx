@@ -150,7 +150,7 @@ function generateGroupId(): string {
 
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
-  const { t, locale } = useLanguage();
+  const { t, locale, isHydrated } = useLanguage();
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,8 +284,9 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
         setLoading(false);
       }
     }
+    if (!isHydrated) return;
     fetchData();
-  }, [classId, locale]);
+  }, [classId, locale, isHydrated]);
 
   // Get all goals as a flat list
   const getAllGoals = (): CurrentGoal[] => {
