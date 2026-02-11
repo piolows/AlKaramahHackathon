@@ -421,10 +421,10 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
     <div>
       {/* Breadcrumb - always visible */}
       <Breadcrumb items={[
-        { label: 'Classes', href: '/classes' },
-        { label: loading ? '...' : (student?.className || 'Class'), href: student ? `/classes/${student.classId}` : '/classes' },
-        { label: loading ? '...' : (student?.firstName || 'Student'), href: student ? `/students/${student.id}` : '/classes' },
-        { label: 'AET Progress' }
+        { label: t('classesPage.title'), href: '/classes' },
+        { label: loading ? '...' : (student?.className || t('classesPage.title')), href: student ? `/classes/${student.classId}` : '/classes' },
+        { label: loading ? '...' : (student?.firstName || t('studentAET.studentNotFound')), href: student ? `/students/${student.id}` : '/classes' },
+        { label: t('studentAET.aetProgress') }
       ]} />
 
       {loading ? (
@@ -432,9 +432,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
       ) : !student ? (
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Not Found</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('studentAET.studentNotFound')}</h1>
             <Link href="/classes" className="text-primary-600 hover:underline">
-              Return to Classes
+              {t('studentAET.returnToClasses')}
             </Link>
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
               className="inline-flex items-center text-gray-600 hover:text-primary-600 mb-6 transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Profile
+              {t('studentAET.backToProfile')}
             </Link>
 
             {/* Page Header with Current Goal */}
@@ -461,10 +461,10 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                 </div>
                 <div className="ml-4">
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {student.firstName}&apos;s AET Progression
+                    {student.firstName}{t('studentAET.aetProgression')}
                   </h1>
                   <p className="text-gray-600">
-                    Track progress across all AET Framework areas
+                    {t('studentAET.trackProgress')}
                   </p>
                 </div>
               </div>
@@ -473,15 +473,15 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">{completedSubcategories}</div>
-                  <div className="text-xs text-gray-500">Completed</div>
+                  <div className="text-xs text-gray-500">{t('studentAET.completedLabel')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-500">{inProgressSubcategories}</div>
-                  <div className="text-xs text-gray-500">In Progress</div>
+                  <div className="text-xs text-gray-500">{t('studentAET.inProgressLabel')}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-400">{totalSubcategories - completedSubcategories - inProgressSubcategories}</div>
-                  <div className="text-xs text-gray-500">Not Started</div>
+                  <div className="text-xs text-gray-500">{t('studentAET.notStartedLabel')}</div>
                 </div>
                 
                 {/* Jump to Current Goal Button */}
@@ -491,12 +491,12 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                   >
                     <Target className="h-4 w-4" />
-                    <span>Jump to Current Goal</span>
+                    <span>{t('studentAET.jumpToCurrentGoal')}</span>
                   </button>
                 ) : completedSubcategories === totalSubcategories ? (
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg">
                     <Check className="h-4 w-4" />
-                    <span>All Complete!</span>
+                    <span>{t('studentAET.allComplete')}</span>
                   </div>
                 ) : null}
               </div>
@@ -508,7 +508,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Info className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">Progression Levels</span>
+            <span className="text-sm font-medium text-gray-700">{t('studentAET.progressionLevels')}</span>
           </div>
           <div className="flex flex-wrap gap-4">
             {PROGRESSION_LEVELS.map((levelInfo) => (
@@ -516,7 +516,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${levelInfo.color}`}>
                   {levelInfo.shortName}
                 </div>
-                <span className="text-sm text-gray-600">{levelInfo.name}</span>
+                <span className="text-sm text-gray-600">{t(`studentAET.level${levelInfo.shortName}`)}</span>
               </div>
             ))}
           </div>
@@ -584,7 +584,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                               </div>
                               <div className="text-left">
                                 <h3 className={`font-medium ${colors.textDark}`}>{category.name}</h3>
-                                <p className="text-xs text-gray-500">{categoryProgressData.completed}/{categoryProgressData.total} completed</p>
+                                <p className="text-xs text-gray-500">{categoryProgressData.completed}/{categoryProgressData.total} {t('studentAET.completed')}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -651,7 +651,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               </h4>
                                               {isCurrentGoal && (
                                                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 font-medium">
-                                                  Current Goal
+                                                  {t('studentAET.currentGoal')}
                                                 </span>
                                               )}
                                             </div>
@@ -664,7 +664,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <button
                                               key={levelInfo.level}
                                               onClick={() => updateLevel(subcategory.id, levelInfo.level)}
-                                              title={`${levelInfo.name} (${levelInfo.shortName})`}
+                                              title={`${t(`studentAET.level${levelInfo.shortName}`)} (${levelInfo.shortName})`}
                                               className={`w-7 h-7 rounded-full text-[10px] font-bold transition-all ${
                                                 currentLevel >= levelInfo.level
                                                   ? `${levelInfo.color} text-white`
@@ -682,7 +682,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         {currentLevel > 0 && (
                                           <>
                                             <span className="text-xs text-gray-500">
-                                              {PROGRESSION_LEVELS[currentLevel - 1].name}
+                                              {t(`studentAET.level${PROGRESSION_LEVELS[currentLevel - 1].shortName}`)}
                                             </span>
                                             <span className="text-gray-300">•</span>
                                           </>
@@ -696,7 +696,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                           }`}
                                         >
                                           <Sparkles className="h-3 w-3 mr-1" />
-                                          {hasPlan ? 'View Goal Plan' : 'Add Goal Plan'}
+                                          {hasPlan ? t('studentAET.viewGoalPlan') : t('studentAET.addGoalPlan')}
                                           {isSubExpanded ? (
                                             <ChevronUp className="h-3 w-3 ml-1" />
                                             ) : (
@@ -714,7 +714,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                           <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                                             <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
                                             <div>
-                                              <p className="text-xs text-red-700 font-medium">Generation Failed</p>
+                                              <p className="text-xs text-red-700 font-medium">{t('studentAET.generationFailed')}</p>
                                               <p className="text-xs text-red-600">{generationError}</p>
                                             </div>
                                           </div>
@@ -723,8 +723,8 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                         {generatingPlan === subcategory.id ? (
                                           <div className="text-center py-6">
                                             <Loader2 className="w-6 h-6 text-primary-500 animate-spin mx-auto mb-3" />
-                                            <p className="text-sm text-gray-600 font-medium">Generating goal overview...</p>
-                                            <p className="text-xs text-gray-500 mt-1">Analyzing {student.firstName}&apos;s profile</p>
+                                            <p className="text-sm text-gray-600 font-medium">{t('studentAET.generatingGoalOverview')}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{t('studentAET.analyzingProfile').replace('{name}', student.firstName)}</p>
                                           </div>
                                         ) : editingPlan === subcategory.id ? (
                                           <div>
@@ -732,7 +732,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                               value={editedPlan}
                                               onChange={(e) => setEditedPlan(e.target.value)}
                                               className="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-xs bg-white"
-                                              placeholder="Write your goal plan..."
+                                              placeholder={t('studentAET.writeGoalPlan')}
                                             />
                                             <div className="flex justify-end gap-2 mt-2">
                                               <button
@@ -740,14 +740,14 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200"
                                               >
                                                 <X className="h-3 w-3 mr-1" />
-                                                Cancel
+                                                {t('common.cancel')}
                                               </button>
                                               <button
                                                 onClick={() => savePlan(subcategory.id)}
                                                 className="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg text-xs font-medium hover:bg-primary-600"
                                               >
                                                 <Save className="h-3 w-3 mr-1" />
-                                                Save
+                                                {t('studentAET.save')}
                                               </button>
                                             </div>
                                           </div>
@@ -784,7 +784,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-2 py-1 bg-ai-50 text-ai-600 rounded text-xs font-medium hover:bg-ai-100 border border-ai-200"
                                               >
                                                 <RefreshCw className="h-3 w-3 mr-1" />
-                                                Regenerate
+                                                {t('studentAET.regenerate')}
                                               </button>
                                               <button
                                                 onClick={() => {
@@ -794,7 +794,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-2 py-1 bg-white text-gray-600 rounded text-xs font-medium hover:bg-gray-50 border border-gray-200"
                                               >
                                                 <Pencil className="h-3 w-3 mr-1" />
-                                                Edit
+                                                {t('common.edit')}
                                               </button>
                                               <button
                                                 onClick={async () => {
@@ -811,7 +811,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-2 py-1 bg-red-50 text-red-600 rounded text-xs font-medium hover:bg-red-100 border border-red-200"
                                               >
                                                 <Trash2 className="h-3 w-3 mr-1" />
-                                                Delete
+                                                {t('common.delete')}
                                               </button>
                                             </div>
 
@@ -863,7 +863,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div>
                                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                                 <MessageCircle className="h-3 w-3 inline mr-1" />
-                                                Additional Context (Optional)
+                                                {t('studentAET.additionalContextOptional')}
                                               </label>
                                               <textarea
                                                 value={customInstructions[subcategory.id] || ''}
@@ -871,7 +871,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                   ...prev,
                                                   [subcategory.id]: e.target.value
                                                 }))}
-                                                placeholder={`Add extra context for ${student.firstName}'s goal...`}
+                                                placeholder={t('studentAET.addExtraContextPlaceholder').replace('{name}', student.firstName)}
                                                 className="w-full h-20 p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-xs bg-white"
                                               />
                                             </div>
@@ -895,14 +895,14 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 onClick={() => setShowInstructions(null)}
                                                 className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200"
                                               >
-                                                Cancel
+                                                {t('common.cancel')}
                                               </button>
                                               <button
                                                 onClick={() => generatePlan(subcategory.id, area.name, category.name, subcategory)}
                                                 className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-xs font-medium hover:bg-ai-600"
                                               >
                                                 <Wand2 className="h-3 w-3 mr-1" />
-                                                Generate
+                                                {t('studentAET.generate')}
                                               </button>
                                             </div>
                                           </div>
@@ -911,7 +911,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                             <div className="text-center py-2">
                                               <Wand2 className="h-6 w-6 text-gray-300 mx-auto mb-2" />
                                               <p className="text-xs text-gray-600">
-                                                Get goal guidance for <strong>{subcategory.name}</strong>
+                                                {t('studentAET.getGoalGuidance')} <strong>{subcategory.name}</strong>
                                               </p>
                                             </div>
 
@@ -932,14 +932,14 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-3 py-1.5 bg-ai-500 text-white rounded-lg text-xs font-medium hover:bg-ai-600"
                                               >
                                                 <Wand2 className="h-3 w-3 mr-1" />
-                                                Generate with AI
+                                                {t('studentAET.generateWithAI')}
                                               </button>
                                               <button
                                                 onClick={() => setShowInstructions(subcategory.id)}
                                                 className="inline-flex items-center px-3 py-1.5 bg-white text-primary-600 rounded-lg text-xs font-medium hover:bg-primary-50 border border-primary-200"
                                               >
                                                 <MessageCircle className="h-3 w-3 mr-1" />
-                                                Add Extra Context
+                                                {t('studentAET.addExtraContext')}
                                               </button>
                                               <button
                                                 onClick={() => {
@@ -949,7 +949,7 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
                                                 className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50 border border-gray-200"
                                               >
                                                 <Pencil className="h-3 w-3 mr-1" />
-                                                Write Manually
+                                                {t('studentAET.writeManually')}
                                               </button>
                                             </div>
                                           </div>
@@ -974,9 +974,9 @@ export default function StudentAETPage({ params }: { params: Promise<{ studentId
         {/* Framework Stats */}
         <div className="mt-8 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="text-center text-sm text-gray-500">
-            AET Progression Framework • {framework.areas.length} Areas • {
+            {t('studentAET.aetFrameworkStats')} • {framework.areas.length} {t('studentAET.areas')} • {
               framework.areas.reduce((acc, area) => acc + area.categories.length, 0)
-            } Categories • {totalSubcategories} Subcategories
+            } {t('studentAET.categories')} • {totalSubcategories} {t('studentAET.subcategories')}
           </div>
         </div>
       </div>
