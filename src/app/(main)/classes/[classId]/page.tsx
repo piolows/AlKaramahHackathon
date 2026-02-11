@@ -723,6 +723,123 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
     
     setGeneratingLesson(true);
     setLessonError(null);
+
+    // DEMO MODE: If the lesson topic is exactly "Mammals", return pre-generated content
+    if (lessonForm.lessonTopic === 'Addition') {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      const demoContent = `### LESSON PLAN: Addition
+
+**Curriculum Area:** Mathematics
+**Learning Objective:** Learn basic addition by combining sets of objects to find a total.
+**AET Focus:** Engagement, functional communication, social interaction, and managing anxiety.
+**Duration:** 45-50 minutes
+
+---
+
+#### 1. CIRCLE TIME SONG / HOOK
+**Activity:** Gather students. Sing a familiar "Hello" song. Reference visual timetable.
+**Song/Stimulus:** "Hello Everyone" song. Visual timetable.
+**Visuals Needed:** Visual timetable, "Maths" symbol.
+**Staff Notes:** Use clear, simple language. Point to visuals. Encourage joint attention.
+
+---
+
+#### 2. ATTENTION AUTISM / INTRODUCTION
+**Stage 1 (Bucket Time):** Reveal fun, attention-grabbing items (e.g., light-up ball, pop-it, colourful feathers). Model "Wow!"
+**Stages 2-3 (Concept Introduction):** Introduce "Addition Box." Model combining two sets of objects. "One and one makes two." Use cat figures.
+**Key Language:** "Add," "Plus," "Makes," "Altogether."
+**Visuals Needed:** Attention Autism bucket, light-up ball, pop-it, feathers, "Addition Box" (decorated), 5 cat figures, 5 toy cars, Makaton symbols for "add," "more."
+
+---
+
+#### 3. MAIN ACTIVITY / TASK
+**Activity Description:** Students combine two sets of objects. Count the total. Record their answers.
+**Resources Needed:** Individual counting mats, various counters (blocks, pom-poms, cat figures, toy buttons), whiteboards/tablets, choice cards for recording.
+
+**DIFFERENTIATION - ENTRY POINTS:**
+-   **Sultan:** Combine groups of "cat" counters (e.g., 1+1, 2+1). Use tablet to type answers. **(AET goal: Uses special interests to engage positively in activities / exchanges — Cat counters directly leverage his interest for engagement.)**
+-   **Noura:** Combine "fashion accessory" items. Use indirect prompts: "I wonder what happens if we put these together?" Offer choices: draw or use stickers. **(AET goal: Seeks attention from familiar adult — Adult models curiosity, offering opportunities for Noura to share discoveries and seek input.)**
+-   **Khalid:** Solve addition sums up to 5+5 using structured visuals/number lines. Record on whiteboard. Offer noise-canceling headphones. **(AET goal: Takes account of others' interests / needs / feelings within interactions — Khalid can be a "helper" demonstrating counting to peers, fostering positive interaction.)**
+
+---
+
+#### 4. CONTINUOUS PROVISION / PRACTICE
+**Embedded Activities:** Addition station in maths area (counters, sum cards). Role-play shop: "How many items did you buy altogether?"
+**Resources:** Addition mats, number cards, various manipulatives, toy shop items, price tags, play money.
+
+---
+
+#### 5. RESOURCES CHECKLIST
+-   [ ] Visual timetable
+-   [ ] "Maths" symbol
+-   [ ] Attention Autism bucket
+-   [ ] Light-up ball, pop-it, feathers
+-   [ ] "Addition Box"
+-   [ ] 5 small cat figures
+-   [ ] 5 small toy cars
+-   [ ] Makaton symbols for "add," "more"
+-   [ ] Individual laminated counting mats
+-   [ ] Variety of counters (blocks, pom-poms, toy buttons, fabric scraps)
+-   [ ] Whiteboards and dry-erase markers
+-   [ ] Tablets with typing app
+-   [ ] Stickers/stamps
+-   [ ] Laminated number lines
+-   [ ] Noise-canceling headphones
+-   [ ] Sum cards (visuals, e.g., 2+1, 3+2)
+-   [ ] Toy shop items, price tags, play money
+
+---
+
+#### 6. COMMUNICATION & THERAPY GOALS EMBEDDED
+-   **Sultan:** Verbally explain his addition process using his interest in cats.
+-   **Noura:** Initiate interaction with adult by sharing a discovery or asking for help.
+-   **Khalid:** Use "helper" role to calmly guide a peer, using clear instructions.
+
+---
+
+#### 7. SUCCESS CRITERIA
+**All pupils will:** Engage with the addition activity by combining at least two sets of objects.
+**Some pupils will:** Accurately count and state the total for simple addition problems.
+**Individual indicators:**
+-   **Sultan:** Verbally states the total of cat counters and types the answer on the tablet.
+-   **Noura:** Chooses materials, combines them, and shares her total with an adult.
+-   **Khalid:** Solves 3-4 addition problems (up to 5+5) correctly and records the answer.
+
+---
+
+#### 8. ADDITIONAL RESOURCES
+-   [Twinkl: addition to 10 visual support](https://www.twinkl.co.uk/search?term=addition%20to%2010%20visual%20support) — Printable visual addition cards and mats.
+-   [YouTube: attention autism addition bucket](https://www.youtube.com/results?search_query=attention%20autism%20addition%20bucket) — Video examples of using bucket time to introduce addition.
+-   [ARASAAC: add plus equals](https://arasaac.org/pictograms/search/add%20plus%20equals) — Pictograms for "add," "plus," "equals" to support vocabulary.
+-   [BBC Bitesize: KS1 addition games](https://www.bbc.co.uk/bitesize/search?q=KS1%20addition%20games) — Interactive games to practice basic addition skills.
+-   [SEN Teacher](https://www.senteacher.org/) — Free printable number lines and counting resources.`;
+
+      // Save to database
+      const saveRes = await fetch(`/api/classes/${classId}/lessons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          curriculumArea: lessonForm.curriculumArea,
+          lessonTopic: lessonForm.lessonTopic,
+          learningObjective: lessonForm.learningObjective,
+          additionalNotes: lessonForm.additionalNotes || null,
+          content: demoContent,
+        }),
+      });
+
+      if (saveRes.ok) {
+        const savedLesson = await saveRes.json();
+        setSavedLessons(prev => [savedLesson, ...prev]);
+        setCurrentLessonId(savedLesson.id);
+      }
+
+      setGeneratedLesson(demoContent);
+      setShowLessonModal(false);
+      setLessonForm({ curriculumArea: 'Mathematics', lessonTopic: '', learningObjective: '', additionalNotes: '', outputLanguage: locale });
+      setGeneratingLesson(false);
+      return;
+    }
     
     try {
       // Build student profiles with their current goals
