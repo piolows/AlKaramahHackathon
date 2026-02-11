@@ -42,7 +42,7 @@ import {
   FileType,
   Presentation
 } from 'lucide-react';
-import { AET_FRAMEWORK, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
+import { AET_FRAMEWORK, AET_FRAMEWORK_AR, COLOR_CLASSES, PROGRESSION_LEVELS, Subcategory, Category, Area } from '@/lib/aet-framework';
 import { exportToWord, exportToPowerPoint, exportToPDF, generateFilename } from '@/lib/export-utils';
 import { Breadcrumb, LoadingSpinner } from '@/components';
 import { useLanguage } from '@/lib/i18n';
@@ -151,6 +151,7 @@ function generateGroupId(): string {
 export default function ClassDetailPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
   const { t, locale, isHydrated } = useLanguage();
+  const framework = locale === 'ar' ? AET_FRAMEWORK_AR : AET_FRAMEWORK;
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -291,7 +292,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   // Get all goals as a flat list
   const getAllGoals = (): CurrentGoal[] => {
     const goals: CurrentGoal[] = [];
-    for (const area of AET_FRAMEWORK.areas) {
+    for (const area of framework.areas) {
       for (const category of area.categories) {
         for (const subcategory of category.subcategories) {
           goals.push({ subcategoryId: subcategory.id, area, category, subcategory });
@@ -304,7 +305,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
   // Get current goal for a student (first incomplete)
   const getCurrentGoal = (studentId: string): CurrentGoal | null => {
     const progress = studentProgress[studentId] || {};
-    for (const area of AET_FRAMEWORK.areas) {
+    for (const area of framework.areas) {
       for (const category of area.categories) {
         for (const subcategory of category.subcategories) {
           const subProgress = progress[subcategory.id];
@@ -319,7 +320,7 @@ export default function ClassDetailPage({ params }: { params: Promise<{ classId:
 
   // Get goal by subcategory ID
   const getGoalBySubcategoryId = (subcategoryId: string): CurrentGoal | null => {
-    for (const area of AET_FRAMEWORK.areas) {
+    for (const area of framework.areas) {
       for (const category of area.categories) {
         for (const subcategory of category.subcategories) {
           if (subcategory.id === subcategoryId) {
